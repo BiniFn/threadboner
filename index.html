@@ -105,16 +105,6 @@
     }
     @media (prefers-reduced-motion: reduce) { .headline { animation: none; } }
     @keyframes text-flicker { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px var(--accent)); } 50% { opacity: 0.85; filter: drop-shadow(0 0 12px var(--accent)); } }
-    .subtitle {
-      font-size: clamp(0.85rem, 2.5vw, 1.1rem);
-      color: var(--muted);
-      letter-spacing: 0.02em;
-      margin-bottom: 3rem;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
-      line-height: 1.6;
-    }
     .countdown {
       display: flex;
       justify-content: center;
@@ -165,30 +155,6 @@
       min-height: 80px;
     }
     @media (max-width: 480px) { .divider { display: none; } }
-    .mystery-text {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(0.9rem, 2.5vw, 1.25rem);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 1rem;
-      opacity: 0;
-      animation: reveal-up 1.2s ease-out 0.8s forwards;
-    }
-    @media (prefers-reduced-motion: reduce) { .mystery-text { opacity: 1; animation: none; } }
-    @keyframes reveal-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .mystery-hint {
-      font-size: clamp(0.75rem, 2vw, 0.9rem);
-      color: var(--muted);
-      line-height: 1.7;
-      max-width: 480px;
-      margin: 0 auto 2.5rem;
-      opacity: 0;
-      animation: reveal-up 1.2s ease-out 1.2s forwards;
-    }
-    @media (prefers-reduced-motion: reduce) { .mystery-hint { opacity: 1; animation: none; } }
-    .mystery-hint span { color: var(--accent); }
     .sigil-row {
       display: flex;
       justify-content: center;
@@ -198,6 +164,7 @@
       animation: reveal-up 1.2s ease-out 1.6s forwards;
     }
     @media (prefers-reduced-motion: reduce) { .sigil-row { opacity: 1; animation: none; } }
+    @keyframes reveal-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     .sigil {
       width: 48px;
       height: 48px;
@@ -220,13 +187,6 @@
       color: var(--muted);
       opacity: 0.6;
     }
-    .cursor-blink::after {
-      content: '|';
-      animation: blink 1s step-end infinite;
-      margin-left: 2px;
-      color: var(--accent);
-    }
-    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
     .hidden-message {
       position: fixed;
       bottom: 1.5rem;
@@ -264,6 +224,98 @@
     @media (prefers-reduced-motion: reduce) {
       .glitch-wrapper::before, .glitch-wrapper::after { animation: none; clip: rect(0, 900px, 100%, 0); }
     }
+
+    /* Audio controls */
+    .audio-controls {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .audio-toggle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--card) 0%, #1c1c1e 100%);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .audio-toggle:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px var(--accent-glow);
+      transform: scale(1.05);
+    }
+    .audio-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .audio-toggle svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--fg);
+      fill: none;
+      transition: stroke 0.3s ease;
+    }
+    .audio-toggle:hover svg { stroke: var(--accent); }
+    .audio-toggle.muted svg { stroke: var(--muted); }
+    .audio-toggle.playing .pause-icon { display: block; }
+    .audio-toggle.playing .play-icon { display: none; }
+    .audio-toggle:not(.playing) .pause-icon { display: none; }
+    .audio-toggle:not(.playing) .play-icon { display: block; }
+    .audio-toggle.muted .play-icon { display: block; }
+    .audio-toggle.muted .pause-icon { display: none; }
+    .track-info {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      max-width: 200px;
+      text-align: right;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .audio-toggle:hover + .track-info,
+    .track-info:hover {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .volume-slider {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: 0.5rem;
+      width: 100px;
+      transform: rotate(-90deg);
+      transform-origin: bottom right;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      accent-color: var(--accent);
+    }
+    .audio-toggle:hover ~ .volume-slider,
+    .volume-slider:hover {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    @media (max-width: 640px) {
+      .audio-controls { bottom: 1rem; right: 1rem; }
+      .audio-toggle { width: 48px; height: 48px; }
+      .track-info { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -271,6 +323,9 @@
   <div class="vignette" aria-hidden="true"></div>
   <div class="ambient-glow" aria-hidden="true"></div>
   <div class="ambient-glow" aria-hidden="true"></div>
+
+  <!-- YouTube Player (hidden) -->
+  <div id="yt-player" style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1;"></div>
 
   <main class="container">
     <div class="seal" aria-hidden="true">
@@ -286,11 +341,6 @@
     </div>
 
     <h1 class="headline glitch-wrapper" data-text="THREADBONER">THREADBONER</h1>
-    
-    <p class="subtitle">
-      The archive was never meant to stay open. The seals are thinning. 
-      Something older than the Covenant stirs beneath the surface.
-    </p>
 
     <div class="countdown" role="timer" aria-label="Countdown to revelation">
       <div class="countdown-unit">
@@ -314,13 +364,6 @@
       </div>
     </div>
 
-    <p class="mystery-text">The revelation arrives</p>
-    <p class="mystery-hint">
-      <span>31 December 2026</span> — The final seal breaks. 
-      Every thread converges. Every question answers itself. 
-      The story you think you know... was only the prologue.
-    </p>
-
     <div class="sigil-row" aria-label="Covenant sigils">
       <div class="sigil" title="The First Seal"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
       <div class="sigil" title="The Thread"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
@@ -334,7 +377,34 @@
 
   <p class="hidden-message" aria-hidden="true">...they are watching</p>
 
+  <!-- Audio Controls -->
+  <div class="audio-controls" role="region" aria-label="Background music controls">
+    <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.05" value="0.3" aria-label="Volume">
+    <button class="audio-toggle" id="audio-toggle" aria-label="Play background music" aria-pressed="false" title="Click to play background music">
+      <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      <svg class="mute-icon" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+    </button>
+    <span class="track-info" id="track-info" aria-live="polite"></span>
+  </div>
+
   <script>
+    // YouTube video IDs from the provided URLs
+    const PLAYLIST = [
+      { id: 'BfZD2dAqt6k', title: 'Track 1' },
+      { id: 'FeG4JH9f180', title: 'Track 2' },
+      { id: 'dy7gr0vaNho', title: 'Track 3' },
+      { id: '1xJbdY9B3A8', title: 'Track 4' }
+    ];
+
+    let player = null;
+    let currentTrackIndex = 0;
+    let isPlaying = false;
+    let isMuted = false;
+    let ytApiReady = false;
+    let userInteracted = false;
+
+    // Countdown
     (function() {
       const TARGET = new Date('2026-12-31T23:59:59').getTime();
       const els = {
@@ -352,8 +422,6 @@
           els.h.textContent = '00';
           els.m.textContent = '00';
           els.s.textContent = '00';
-          document.querySelector('.mystery-text').textContent = 'IT IS DONE';
-          document.querySelector('.mystery-hint').innerHTML = 'The seal has broken. <span>Refresh to enter.</span>';
           return;
         }
         const days = Math.floor(diff / 86400000);
@@ -367,27 +435,182 @@
       }
       tick();
       setInterval(tick, 1000);
+    })();
 
-      document.querySelectorAll('.sigil').forEach(sigil => {
-        sigil.addEventListener('mouseenter', () => {
-          sigil.style.animation = 'none';
-          sigil.offsetHeight;
-          sigil.style.animation = 'pulse-glow 0.6s ease-out';
-        });
+    // Sigil hover effect
+    document.querySelectorAll('.sigil').forEach(sigil => {
+      sigil.addEventListener('mouseenter', () => {
+        sigil.style.animation = 'none';
+        sigil.offsetHeight;
+        sigil.style.animation = 'pulse-glow 0.6s ease-out';
       });
+    });
 
-      let konami = '';
-      const sequence = 'arrowuparrowuparrowdownarrowdownarrowleftarrowrightarrowleftrightba';
-      document.addEventListener('keydown', e => {
-        konami += e.key.toLowerCase().replace(' ', '');
-        if (konami.length > sequence.length) konami = konami.slice(-sequence.length);
-        if (konami === sequence) {
-          document.querySelector('.hidden-message').style.opacity = '1';
-          document.querySelector('.hidden-message').textContent = 'ACCESS GRANTED // COVENANT OVERRIDE // WELCOME BACK YONO';
-          setTimeout(() => { document.querySelector('.hidden-message').style.opacity = '0.15'; }, 5000);
+    // Konami code easter egg
+    let konami = '';
+    const sequence = 'arrowuparrowuparrowdownarrowdownarrowleftarrowrightarrowleftrightba';
+    document.addEventListener('keydown', e => {
+      konami += e.key.toLowerCase().replace(' ', '');
+      if (konami.length > sequence.length) konami = konami.slice(-sequence.length);
+      if (konami === sequence) {
+        document.querySelector('.hidden-message').style.opacity = '1';
+        document.querySelector('.hidden-message').textContent = 'ACCESS GRANTED // COVENANT OVERRIDE // WELCOME BACK YONO';
+        setTimeout(() => { document.querySelector('.hidden-message').style.opacity = '0.15'; }, 5000);
+      }
+    });
+
+    // YouTube IFrame API
+    window.onYouTubeIframeAPIReady = function() {
+      ytApiReady = true;
+      player = new YT.Player('yt-player', {
+        height: '1',
+        width: '1',
+        videoId: PLAYLIST[0].id,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          enablejsapi: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+          showinfo: 0,
+          loop: 0,
+          mute: 1
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError
         }
       });
-    })();
+    };
+
+    function onPlayerReady(event) {
+      player.setVolume(30);
+      updateTrackInfo();
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.ENDED) {
+        playNextTrack();
+      } else if (event.data === YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        updateToggleUI();
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
+        isPlaying = false;
+        updateToggleUI();
+      }
+    }
+
+    function onPlayerError(event) {
+      console.warn('YouTube player error:', event.data);
+      playNextTrack();
+    }
+
+    function playNextTrack() {
+      currentTrackIndex = (currentTrackIndex + 1) % PLAYLIST.length;
+      if (player && player.loadVideoById) {
+        player.loadVideoById(PLAYLIST[currentTrackIndex].id);
+        updateTrackInfo();
+      }
+    }
+
+    function updateTrackInfo() {
+      const track = PLAYLIST[currentTrackIndex];
+      document.getElementById('track-info').textContent = `Now playing: ${track.title}`;
+    }
+
+    function updateToggleUI() {
+      const toggle = document.getElementById('audio-toggle');
+      if (isPlaying && !isMuted) {
+        toggle.classList.add('playing');
+        toggle.classList.remove('muted');
+        toggle.setAttribute('aria-label', 'Pause background music');
+        toggle.setAttribute('aria-pressed', 'true');
+      } else if (isMuted) {
+        toggle.classList.add('muted');
+        toggle.classList.remove('playing');
+        toggle.setAttribute('aria-label', 'Unmute background music');
+        toggle.setAttribute('aria-pressed', 'false');
+      } else {
+        toggle.classList.remove('playing', 'muted');
+        toggle.setAttribute('aria-label', 'Play background music');
+        toggle.setAttribute('aria-pressed', 'false');
+      }
+    }
+
+    // Audio toggle button
+    const toggleBtn = document.getElementById('audio-toggle');
+    const volumeSlider = document.getElementById('volume-slider');
+
+    function initAudio() {
+      if (!ytApiReady || !player) return;
+      userInteracted = true;
+      if (isMuted) {
+        player.unMute();
+        isMuted = false;
+      }
+      if (!isPlaying) {
+        player.playVideo();
+      }
+      updateToggleUI();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (!userInteracted) {
+        initAudio();
+        return;
+      }
+      if (isMuted) {
+        player.unMute();
+        isMuted = false;
+        player.playVideo();
+      } else if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    });
+
+    // Volume control
+    volumeSlider.addEventListener('input', (e) => {
+      if (player && player.setVolume) {
+        player.setVolume(Math.round(e.target.value * 100));
+        if (e.target.value > 0 && isMuted) {
+          player.unMute();
+          isMuted = false;
+          updateToggleUI();
+        } else if (e.target.value == 0 && !isMuted) {
+          player.mute();
+          isMuted = true;
+          updateToggleUI();
+        }
+      }
+    });
+
+    // Load YouTube API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // Auto-try to play on first user interaction (any click/key)
+    function tryAutoPlay() {
+      if (userInteracted) return;
+      userInteracted = true;
+      if (ytApiReady && player) {
+        player.unMute();
+        isMuted = false;
+        player.playVideo().catch(() => {});
+        updateToggleUI();
+      }
+    }
+    ['click', 'keydown', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, tryAutoPlay, { once: true, passive: true });
+    });
   </script>
 </body>
 </html>
