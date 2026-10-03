@@ -277,6 +277,18 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
   .plate{display:none}
 }
+
+/* skip-to-next: same ghost treatment as the play button, no extra weight */
+#nextBtn .i-next{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#nextBtn{width:34px;height:34px;opacity:.55;transition:opacity .2s,color .2s}
+#nextBtn:hover,#nextBtn:focus-visible{opacity:1;color:var(--accent)}
+#nextBtn svg{width:15px;height:15px}
+/* the track name is now a link out to the source */
+a.track{color:inherit;text-decoration:none;transition:color .2s}
+a.track:hover{color:var(--accent)}
+a.track[href]{text-decoration:underline;text-decoration-color:rgba(217,45,45,.45);text-underline-offset:3px}
+a.track[href]:hover{text-decoration-color:var(--accent)}
+#yt-host{position:fixed;width:2px;height:2px;opacity:.001;pointer-events:none;left:-10px;top:-10px;overflow:hidden}
 </style>
 </head>
 
@@ -287,7 +299,11 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
      YouTube embed is judged by youtube.com's autoplay policy, which this page
      cannot influence. Served from here the browser judges it by this site's own
      engagement, so audible autoplay succeeds for returning visitors. -->
-<audio id="bgm" src="./assets/audio/theme.mp3" loop preload="auto" playsinline></audio>
+<audio id="bgm" src="./assets/audio/theme.mp3" loop preload="auto" playsinline>
+<!-- YouTube is created only if someone skips to an external track. Hidden by
+     opacity/position rather than display:none, because the IFrame API needs a
+     laid-out box to render into. -->
+<div id="yt-host" aria-hidden="true"></div></audio>
 
 <main class="wrap">
   <button class="knot" id="knot" aria-label="The mark. A thread, and the piece that came off it.">
@@ -369,7 +385,11 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
     <button class="tb" id="helpBtn">Keys</button>
   </div>
   <div class="bar-r">
-    <span class="track" id="trackName"></span>
+    <a class="track" id="trackName" href="#" target="_blank" rel="noopener"
+       title="Open this track on YouTube"></a>
+    <button class="ib" id="nextBtn" aria-label="Next track" title="Next track">
+      <svg class="i-next" viewBox="0 0 24 24"><path d="M6 5l9 7-9 7zM17 5v14"/></svg>
+    </button>
     <button class="ib sound-btn" id="soundBtn" aria-label="Play soundtrack" aria-pressed="false">
       <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z"/></svg>
       <svg class="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
@@ -668,53 +688,167 @@ draw();
 })();
 
 /* ================= soundtrack
-   Self-hosted original score. No third-party embed, and no iframe API.
+   Four tracks. The first is ours and self-hosted; the rest are YouTube.
 
-   Autoplay stated plainly rather than faked: browsers refuse audible autoplay
-   on a first visit, with no flag that works around it. They allow it once the
-   visitor has engaged with the origin — a repeat visitor, a high engagement
-   score, or someone who permitted autoplay for the site. So: try at once, and
-   if refused, latch onto the first interaction anywhere. Repeat visitors get
-   sound with no click at all. */
+   The split is deliberate. Self-hosted audio is what autoplays, because a
+   cross-origin YouTube embed is judged by youtube.com's policy and this page
+   cannot influence it — proven earlier, where even Chrome's own
+   autoplay-policy flag did not unblock it. So the default track is local and
+   the external tracks are opt-in via the skip button.
+
+   The IFrame API is loaded lazily, on first use. Loading it up front would
+   undo the whole point: no third-party script on the critical path, no
+   iframe, no embed page. Someone who never presses skip never pays for
+   YouTube at all.
+
+   Autoplay, stated plainly: browsers refuse audible autoplay on a first
+   visit and no flag works around it. They allow it once the visitor has
+   engaged with the origin. So try at once, and if refused, latch onto the
+   first interaction anywhere. */
+var SK='tb-sound';
+
+/* Track 0 is local. The rest carry their YouTube id and a display name. */
+var TRACKS=[
+  {title:'AOT Ashes',local:'./assets/audio/theme.mp3'},
+  {title:'Last Game By Zwei',yt:'FeG4JH9f180'},
+  {title:'Hacking to the Gate',yt:'dy7gr0vaNho'},
+  {title:'Fatima',yt:'1xJbdY9B3A8'}
+];
+
 var audio=document.getElementById('bgm'),
     btn=document.getElementById('soundBtn'),
-    nameEl=document.getElementById('trackName');
-var playing=false,blocked=false;
+    nextBtn=document.getElementById('nextBtn'),
+    nameEl=document.getElementById('trackName'),
+    ytHost=document.getElementById('yt-host');
+
+var playing=false, blocked=false, idx=0;
+var yt=null, ytLoading=false, ytReady=false, volume=0.34;
 
 function pref(){try{return localStorage.getItem(SK)}catch(e){return null}}
 function setPref(v){try{localStorage.setItem(SK,v)}catch(e){}}
+
+function track(){return TRACKS[idx]}
+function ytUrl(t){return t.yt?'https://www.youtube.com/watch?v='+t.yt:''}
+
+/* ---------- state ---------- */
 function paint(){
   btn.classList.toggle('playing',playing);
   btn.classList.toggle('blocked',blocked);
   btn.setAttribute('aria-pressed',playing?'true':'false');
   btn.setAttribute('aria-label',playing?'Pause soundtrack':'Play soundtrack');
   btn.title=blocked?'Tap anywhere to start the score':'Soundtrack';
+  nextBtn.title='Next track — '+(track().title);
 }
 function started(){playing=true;blocked=false;paint()}
 function refused(){playing=false;blocked=true;paint()}
-function start(){
-  if(!audio)return;
+
+/* ---------- local track ---------- */
+function playLocal(){
+  audio.src=track().local;
+  audio.loop=true;
+  try{audio.volume=volume}catch(e){}
   var p;
   try{p=audio.play()}catch(e){refused();return}
   if(p&&p.then)p.then(started).catch(refused);
   else started();
 }
+function stopLocal(){try{audio.pause()}catch(e){}}
+
+/* ---------- YouTube track, loaded on demand ---------- */
+function loadYouTube(cb){
+  if(ytReady){cb();return}
+  if(ytLoading){return}          // a second press just reuses the pending load
+  ytLoading=true;
+  window.onYouTubeIframeAPIReady=function(){
+    ytLoading=false;
+    ytReady=true;
+    /* The API replaces #yt-host with the iframe itself, so the element that
+       ends up in the DOM is the iframe — not a container holding one. */
+    yt=new YT.Player('yt-host',{
+      playerVars:{
+        autoplay:1,
+        controls:0,
+        disablekb:1,
+        modestbranding:1,
+        playsinline:1,
+        rel:0,
+        /* The embed ignores mute:1 often enough that it is not relied on here.
+           Instead mute is applied through the API once the player reports
+           ready, then volume is set directly. */
+        origin:location.origin==='null'?'':location.origin
+      },
+      events:{
+        onReady:function(e){
+          try{e.target.mute();e.target.setVolume(volume*100)}catch(err){}
+          cb();
+        },
+        onStateChange:function(e){
+          /* 0 = ended. Roll to the next track instead of stopping dead. */
+          if(e.data===YT.PlayerState.ENDED){goTo(idx+1,true)}
+          else if(e.data===YT.PlayerState.PLAYING)started();
+          else if(e.data===YT.PlayerState.PAUSED){playing=false;paint()}
+        },
+        onError:function(){fellBack('this track will not load')}
+      }
+    });
+  };
+  var tag=document.createElement('script');
+  tag.src='https://www.youtube.com/iframe_api';
+  tag.async=true;
+  tag.onerror=function(){ytLoading=false;fellBack('YouTube could not be reached')};
+  document.head.appendChild(tag);
+}
+function playYT(){
+  loadYouTube(function(){
+    if(!yt||idx===0)return;
+    try{
+      yt.loadVideoById(track().yt);
+      yt.mute();yt.setVolume(volume*100);
+      started();
+    }catch(e){fellBack('this track will not load')}
+  });
+}
+function stopYT(){if(yt){try{yt.stopVideo()}catch(e){}}}
+
+/* If an external track cannot play, do not leave a dead button — say so and
+   stay on the current track rather than silently doing nothing. */
+function fellBack(msg){
+  blocked=false;playing=false;paint();
+  nameEl.title=msg;
+}
+
+/* ---------- transport ---------- */
+function goTo(n,autoplay){
+  n=((n%TRACKS.length)+TRACKS.length)%TRACKS.length;
+  var wasPlaying=playing||autoplay;
+  if(idx===0)stopLocal();else stopYT();
+  idx=n;
+  /* label first, so the UI is right even while the source spins up */
+  nameEl.textContent=track().title;
+  var u=ytUrl(track());
+  if(u){nameEl.href=u}else{nameEl.removeAttribute('href')}
+  nameEl.title='';
+  paint();
+  if(wasPlaying||autoplay){
+    if(idx===0)playLocal();else playYT();
+  }
+}
+function start(){
+  if(idx===0)playLocal();else playYT();
+}
 function stop(){
-  if(!audio)return;
-  try{audio.pause()}catch(e){}
+  if(idx===0)stopLocal();else stopYT();
   playing=false;blocked=false;setPref('off');paint();
 }
+
 audio.addEventListener('playing',started);
 audio.addEventListener('pause',function(){playing=false;blocked=false;paint()});
 audio.addEventListener('error',function(){
-  nameEl.textContent='score unavailable';
-  blocked=false;playing=false;paint();
+  if(idx===0){nameEl.textContent='score unavailable';blocked=false;playing=false;paint()}
 });
+
 /* quiet enough to sit under text without fighting it */
-try{audio.volume=0.34}catch(e){}
-nameEl.textContent='AOT Ashes';
-paint();
-if(pref()!=='off')start();
+try{audio.volume=volume}catch(e){}
 
 /* if the browser refused, the first interaction anywhere starts it */
 function armFirstGesture(){
@@ -732,12 +866,15 @@ function armFirstGesture(){
     document.addEventListener(e,onFirst,{capture:true,passive:true});
   });
 }
-if(pref()!=='off')armFirstGesture();
 
-btn.addEventListener('click',function(){
-  playing||blocked?stop():start();
+goTo(0,false);
+if(pref()!=='off'){start();armFirstGesture()}
+
+btn.addEventListener('click',function(){playing||blocked?stop():start()});
+nextBtn.addEventListener('click',function(){
+  if(pref()==='off')setPref('on');
+  goTo(idx+1,true);
 });
-
 /* ================= whisper ================= */
 var W=['...the loom is counting',
        'five marks. three taps on the knot.',
