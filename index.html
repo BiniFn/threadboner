@@ -67,6 +67,9 @@ body{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
 .wrap{position:relative;z-index:10;width:100%;max-width:680px;padding:2rem 1.25rem 5rem}
 
+/* the audio element itself is never visible or focusable */
+#bgm{display:none}
+
 /* ---------- skip link ---------- */
 .skip{position:absolute;left:-9999px;top:0;z-index:1000;background:var(--red);
   color:#fff;padding:.6rem 1rem;font-size:.7rem;letter-spacing:.1em}
@@ -207,7 +210,7 @@ h1{font-family:var(--serif);font-weight:700;color:var(--ink);
 .sound-btn.playing .bars i{animation:eq .9s ease-in-out infinite}
 .bars i:nth-child(2){height:6px;animation-delay:.18s}
 @keyframes eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
-.sound-btn.silent{border-style:dashed;border-color:var(--red)}
+.sound-btn.blocked{border-style:dashed;border-color:var(--red)}
 .track{font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
   max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb{background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;
@@ -280,9 +283,11 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
 <body>
 <a class="skip" href="#quote">Skip to the quote</a>
 <div class="plate" aria-hidden="true"></div>
-<div id="yt-host" aria-hidden="true"
-     style="position:fixed;left:0;top:0;width:180px;height:101px;opacity:0;
-            pointer-events:none;z-index:1;transform:translateY(-150px)"></div>
+<!-- Original score, served from this origin. That matters: a cross-origin
+     YouTube embed is judged by youtube.com's autoplay policy, which this page
+     cannot influence. Served from here the browser judges it by this site's own
+     engagement, so audible autoplay succeeds for returning visitors. -->
+<audio id="bgm" src="./assets/audio/theme.mp3" loop preload="auto" playsinline></audio>
 
 <main class="wrap">
   <button class="knot" id="knot" aria-label="The mark. A thread, and the piece that came off it.">
@@ -365,8 +370,6 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
   </div>
   <div class="bar-r">
     <span class="track" id="trackName"></span>
-    <button class="ib" id="next" aria-label="Next track" title="Next track">
-      <svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7zM19 5v14"/></svg></button>
     <button class="ib sound-btn" id="soundBtn" aria-label="Play soundtrack" aria-pressed="false">
       <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z"/></svg>
       <svg class="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
@@ -644,49 +647,56 @@ draw();
   }
 })();
 
-/* ================= soundtrack ================= */
-var TRACKS=[
-  {id:'FeG4JH9f180',name:'Last Game By Zwei'},
-  {id:'dy7gr0vaNho',name:'Hacking to the Gate'},
-  {id:'1xJbdY9B3A8',name:'Fatima'}
-];
-var idx=0,ready=false,playing=false,silent=false,player=null,dead=0;
-var btn=document.getElementById('soundBtn'),
-    nameEl=document.getElementById('trackName'),
-    nextBtn=document.getElementById('next');
+/* ================= soundtrack
+   Self-hosted original score. No third-party embed, and no iframe API.
+
+   Autoplay stated plainly rather than faked: browsers refuse audible autoplay
+   on a first visit, with no flag that works around it. They allow it once the
+   visitor has engaged with the origin — a repeat visitor, a high engagement
+   score, or someone who permitted autoplay for the site. So: try at once, and
+   if refused, latch onto the first interaction anywhere. Repeat visitors get
+   sound with no click at all. */
+var audio=document.getElementById('bgm'),
+    btn=document.getElementById('soundBtn'),
+    nameEl=document.getElementById('trackName');
+var playing=false,blocked=false;
 
 function pref(){try{return localStorage.getItem(SK)}catch(e){return null}}
 function setPref(v){try{localStorage.setItem(SK,v)}catch(e){}}
-function label(){nameEl.textContent=TRACKS[idx].name}
 function paint(){
   btn.classList.toggle('playing',playing);
+  btn.classList.toggle('blocked',blocked);
   btn.setAttribute('aria-pressed',playing?'true':'false');
   btn.setAttribute('aria-label',playing?'Pause soundtrack':'Play soundtrack');
+  btn.title=blocked?'Tap anywhere to start the score':'Soundtrack';
 }
-function attempt(){
-  if(!ready||!player)return;
-  try{player.unMute();player.setVolume(28);player.playVideo()}catch(e){}
-  silent=false;btn.classList.remove('silent');
-  setPref('on');
+function started(){playing=true;blocked=false;paint()}
+function refused(){playing=false;blocked=true;paint()}
+function start(){
+  if(!audio)return;
+  var p;
+  try{p=audio.play()}catch(e){refused();return}
+  if(p&&p.then)p.then(started).catch(refused);
+  else started();
 }
-function halt(){
-  if(!ready||!player)return;
-  try{player.pauseVideo()}catch(e){}
-  playing=false;setPref('off');paint();
+function stop(){
+  if(!audio)return;
+  try{audio.pause()}catch(e){}
+  playing=false;blocked=false;setPref('off');paint();
 }
-function pick(i,autoplay){
-  idx=(i+TRACKS.length)%TRACKS.length;label();
-  if(!ready||!player)return;
-  try{
-    if(autoplay){player.loadVideoById(TRACKS[idx].id);player.playVideo()}
-    else{player.cueVideoById(TRACKS[idx].id)}
-  }catch(e){}
-}
-btn.addEventListener('click',function(){
-  if(!ready)return;
-  playing?halt():attempt();
+audio.addEventListener('playing',started);
+audio.addEventListener('pause',function(){playing=false;blocked=false;paint()});
+audio.addEventListener('error',function(){
+  nameEl.textContent='score unavailable';
+  blocked=false;playing=false;paint();
 });
-nextBtn.addEventListener('click',function(){pick(idx+1,playing)});
+/* quiet enough to sit under text without fighting it */
+try{audio.volume=0.34}catch(e){}
+nameEl.textContent='AOT Ashes';
+paint();
+if(pref()!=='off')start();
+
+/* if the browser refused, the first interaction anywhere starts it */
 function armFirstGesture(){
   var done=false;
   function onFirst(){
@@ -695,64 +705,18 @@ function armFirstGesture(){
     ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
       document.removeEventListener(e,onFirst,true);
     });
-    if(ready&&player&&!playing)attempt();
+    if(pref()==='off')return;
+    if(!playing)start();
   }
   ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
     document.addEventListener(e,onFirst,{capture:true,passive:true});
   });
 }
-function syncSilent(){
-  var m=false;
-  try{m=!!(player&&player.isMuted())}catch(e){}
-  silent=m;
-  btn.classList.toggle('silent',m&&playing);
-  btn.title=(m&&playing)?'Playing — touch anywhere for sound':'Soundtrack';
-}
-function onReady(){
-  ready=true;
-  var off=(pref()==='off');
-  try{
-    /* mute through the API, not playerVars: {mute:1} is not honoured and the
-       embed then tries an AUDIBLE autoplay, which the browser refuses. */
-    player.mute();player.setVolume(28);
-    if(!off)player.playVideo();
-  }catch(e){}
-  armFirstGesture();
-}
-function onState(e){
-  if(e.data===YT.PlayerState.ENDED){pick(idx+1,true);return}
-  if(e.data===YT.PlayerState.PLAYING){
-    playing=true;
-    try{if(player&&!player.isMuted())setPref('on')}catch(err){}
-    syncSilent();paint();
-  }else if(e.data===YT.PlayerState.PAUSED||e.data===YT.PlayerState.BUFFERING){
-    if(e.data===YT.PlayerState.PAUSED)playing=false;
-    syncSilent();paint();
-  }
-}
-function onError(){
-  dead++;
-  if(dead>=TRACKS.length){nameEl.textContent='soundtrack unavailable';return}
-  pick(idx+1,playing);
-}
-window.onYouTubeIframeAPIReady=function(){
-  var off=(pref()==='off');
-  player=new YT.Player('yt-host',{
-    height:'101',width:'180',videoId:TRACKS[idx].id,
-    playerVars:{autoplay:off?0:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,
-                modestbranding:1,playsinline:1,rel:0,
-                origin:(/^https?:$/.test(location.protocol)?location.origin:undefined)},
-    events:{onReady:onReady,onStateChange:onState,onError:onError}
-  });
-};
-label();
-(function(){
-  var s=document.createElement('script');
-  s.src='https://www.youtube.com/iframe_api';
-  s.async=true;
-  document.head.appendChild(s);
-})();
-if(window.YT&&window.YT.Player)onReady();
+if(pref()!=='off')armFirstGesture();
+
+btn.addEventListener('click',function(){
+  playing||blocked?stop():start();
+});
 
 /* ================= whisper ================= */
 var W=['...the loom is counting',
