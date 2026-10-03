@@ -721,8 +721,8 @@ var audio=document.getElementById('bgm'),
     nameEl=document.getElementById('trackName'),
     ytHost=document.getElementById('yt-host');
 
-var playing=false, blocked=false, idx=0;
-var yt=null, ytLoading=false, ytReady=false, volume=0.34;
+var playing=false, blocked=false, idx=0, stopping=false;
+var yt=null, ytLoading=false, ytReady=false, loadedId=null, volume=0.34;
 
 function pref(){try{return localStorage.getItem(SK)}catch(e){return null}}
 function setPref(v){try{localStorage.setItem(SK,v)}catch(e){}}
@@ -755,6 +755,17 @@ function playLocal(){
 function stopLocal(){try{audio.pause()}catch(e){}}
 
 /* ---------- YouTube track, loaded on demand ---------- */
+/* The embed decides its own policy: it can force itself muted, and it has
+   ignored playerVars.mute before. So never mute preemptively — ask for the
+   volume we want after playback starts, and check whether we actually got it.
+   Returns true when the player is audible. */
+function applyVolume(){
+  if(!yt)return false;
+  try{y.setVolume(volume*100)}catch(e){}
+  try{if(y.isMuted())y.unMute()}catch(e){}
+  try{return !y.isMuted()}catch(e){return false}
+}
+
 function loadYouTube(cb){
   if(ytReady){cb();return}
   if(ytLoading){return}          // a second press just reuses the pending load
@@ -779,14 +790,25 @@ function loadYouTube(cb){
       },
       events:{
         onReady:function(e){
-          try{e.target.mute();e.target.setVolume(volume*100)}catch(err){}
+          /* volume only. Muting here is what made every external track play
+             silently — it was never undone. */
+          try{e.target.setVolume(volume*100)}catch(err){}
           cb();
         },
         onStateChange:function(e){
-          /* 0 = ended. Roll to the next track instead of stopping dead. */
-          if(e.data===YT.PlayerState.ENDED){goTo(idx+1,true)}
-          else if(e.data===YT.PlayerState.PLAYING)started();
-          else if(e.data===YT.PlayerState.PAUSED){playing=false;paint()}
+          var d=e.data;
+          /* ENDED from stopVideo() looks identical to the track finishing.
+             Without this guard, pressing pause would skip to the next song. */
+          if(d===YT.PlayerState.ENDED){
+            if(stopping){stopping=false;playing=false;paint();return}
+            goTo(idx+1,true);
+            return;
+          }
+          if(d===YT.PlayerState.PLAYING){applyVolume();started()}
+          else if(d===YT.PlayerState.BUFFERING&&!yt.isMuted()){started()}
+          else if(d===YT.PlayerState.BUFFERING){playing=true;blocked=false;paint()}
+          else if(d===YT.PlayerState.PAUSED){playing=false;paint()}
+          else if(d===YT.PlayerState.CUED){playing=false;paint()}
         },
         onError:function(){fellBack('this track will not load')}
       }
@@ -798,17 +820,63 @@ function loadYouTube(cb){
   tag.onerror=function(){ytLoading=false;fellBack('YouTube could not be reached')};
   document.head.appendChild(tag);
 }
+/* Watch an external track until it is genuinely audible, or admit it is not. */
+function settle(){
+  var tries=[350,900,1800,3200,5000,7500,11000];
+  (function next(i){
+    if(idx===0||!yt)return;
+    var audible=applyVolume();
+    var st=-1;
+    try{st=yt.getPlayerState()}catch(e){}
+    var playing=(st===YT.PlayerState.PLAYING);
+    var busy=(playing||st===YT.PlayerState.BUFFERING||st===YT.PlayerState.CUED);
+    if(audible&&playing){started();return}          /* clears blocked */
+    if(i>=tries.length){
+      /* Only call it blocked when the track is genuinely running and we cannot
+         get sound out of it. A slow-loading track is still loading, not
+         blocked, and saying otherwise was wrong. */
+      if(playing&&!audible){blocked=true;playing=false;paint();armUnmute()}
+      else{playing=false;paint()}
+      return;
+    }
+    if(!busy&&i>=4){playing=false;paint();return}     /* stalled, not blocked */
+    setTimeout(function(){next(i+1)},tries[i]);
+  })(0);
+}
+
 function playYT(){
   loadYouTube(function(){
     if(!yt||idx===0)return;
     try{
-      yt.loadVideoById(track().yt);
-      yt.mute();yt.setVolume(volume*100);
+      /* If this exact video is already in the player, resume it. Reloading by
+         id restarts from zero and does not always fire a PLAYING event, which
+         left the button stuck showing "paused" after a resume. */
+      var loaded=(loadedId===track().yt);
+      if(loaded&&yt.getPlayerState&&yt.getPlayerState()===YT.PlayerState.PAUSED){
+        yt.playVideo();
+      }else{
+        loadedId=track().yt;
+        yt.loadVideoById(track().yt);
+      }
+      applyVolume();
       started();
+      /* The embed settles asynchronously and misled a single sample. It
+         auto-mutes a programmatic loadVideoById, then unmutes itself once it
+         decides the gesture counts — so a one-shot check at 900ms caught it
+         mid-clamp and latched "blocked" on permanently, leaving the button
+         claiming silence while the track played audibly. Sample across a
+         window instead, and only give up if it is STILL muted at the end. */
+      settle();
     }catch(e){fellBack('this track will not load')}
   });
 }
-function stopYT(){if(yt){try{yt.stopVideo()}catch(e){}}}
+function stopYT(){
+  if(!yt)return;
+  stopping=true;
+  try{yt.stopVideo()}catch(e){}
+  /* if no state change ever arrives, do not leave the guard armed */
+  setTimeout(function(){stopping=false},600);
+}
 
 /* If an external track cannot play, do not leave a dead button — say so and
    stay on the current track rather than silently doing nothing. */
@@ -822,6 +890,7 @@ function goTo(n,autoplay){
   n=((n%TRACKS.length)+TRACKS.length)%TRACKS.length;
   var wasPlaying=playing||autoplay;
   if(idx===0)stopLocal();else stopYT();
+  if(n!==idx)loadedId=null;   /* switching tracks: the next play must load */
   idx=n;
   /* label first, so the UI is right even while the source spins up */
   nameEl.textContent=track().title;
@@ -833,12 +902,42 @@ function goTo(n,autoplay){
     if(idx===0)playLocal();else playYT();
   }
 }
+/* If the embed is holding itself muted, the only thing that releases it is a
+   real user gesture. One shot, then it detaches itself. */
+function armUnmute(){
+  var done=false;
+  function onIt(){
+    if(done)return;
+    done=true;
+    ['pointerdown','keydown','touchstart'].forEach(function(e){
+      document.removeEventListener(e,onIt,true);
+    });
+    if(applyVolume()){started()}
+    else{fellBack('the embed will not release sound here — open the track instead')}
+  }
+  ['pointerdown','keydown','touchstart'].forEach(function(e){
+    document.addEventListener(e,onIt,{capture:true,passive:true});
+  });
+}
+
 function start(){
+  if(pref()==='paused')setPref('on');
   if(idx===0)playLocal();else playYT();
 }
 function stop(){
   if(idx===0)stopLocal();else stopYT();
   playing=false;blocked=false;setPref('off');paint();
+}
+/* The play/pause button: pause on an external track rather than unloading it,
+   so resuming does not pay for a fresh load.
+
+   Records 'paused' rather than 'off'. A visitor who paused should not be
+   ambushed by sound on their next visit, but "paused" must stay resumable —
+   collapsing it into "off" was conflating two different intentions. */
+function pause(){
+  if(idx===0){stopLocal();playing=false;blocked=false;setPref('paused');paint();return}
+  if(yt){try{yt.pauseVideo()}catch(e){}}
+  playing=false;blocked=false;setPref('paused');paint();
 }
 
 audio.addEventListener('playing',started);
@@ -859,7 +958,7 @@ function armFirstGesture(){
     ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
       document.removeEventListener(e,onFirst,true);
     });
-    if(pref()==='off')return;
+    if(pref()==='off'||pref()==='paused')return;
     if(!playing)start();
   }
   ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
@@ -868,9 +967,14 @@ function armFirstGesture(){
 }
 
 goTo(0,false);
-if(pref()!=='off'){start();armFirstGesture()}
+/* 'off' = never. 'paused' = silent until they ask. Both stay quiet on load. */
+if(pref()!=='off'&&pref()!=='paused'){start();armFirstGesture()}
 
-btn.addEventListener('click',function(){playing||blocked?stop():start()});
+btn.addEventListener('click',function(){
+  if(playing)pause();
+  else if(blocked)start();
+  else start();
+});
 nextBtn.addEventListener('click',function(){
   if(pref()==='off')setPref('on');
   goTo(idx+1,true);
