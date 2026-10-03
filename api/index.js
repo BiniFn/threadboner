@@ -492,11 +492,6 @@ async function moderateRequest(requestId, reviewer, decision, note = "") {
 
 exports.handleLogin = (() => {
 
-
-
-
-
-
 function authPayload(user, session, req) {
   const payload = {
     user: {
@@ -611,13 +606,7 @@ return async (req, res) => {
 
 })();
 
-
-
 exports.handleLogout = (() => {
-
-
-
-
 
 return async (req, res) => {
   if (allowCors(req, res)) return;
@@ -652,10 +641,6 @@ return async (req, res) => {
 })();
 
 exports.handleMe = (() => {
-
-
-
-
 
 return async (req, res) => {
   if (allowCors(req, res)) {
@@ -698,11 +683,6 @@ return async (req, res) => {
 })();
 
 exports.handleSignup = (() => {
-
-
-
-
-
 
 function validUsername(value) {
   return /^[a-zA-Z0-9_]{3,24}$/.test(value);
@@ -1036,12 +1016,6 @@ return async (req, res) => {
 
 exports.handleAnalytics = (() => {
 
-
-
-
-
-
-
 // ── Badge definitions ─────────────────────────────────────────────────────────
 const BADGES = {
   first_chapter: {
@@ -1293,11 +1267,6 @@ return async (req, res) => {
 
 exports.handleBookmarks = (() => {
 
-
-
-
-
-
 return async (req, res) => {
   if (allowCors(req, res)) return;
 
@@ -1438,11 +1407,6 @@ return async (req, res) => {
 })();
 
 exports.handleCommunity = (() => {
-
-
-
-
-
 
 function cleanText(value, max = 2000) {
   return String(value || "")
@@ -1973,11 +1937,6 @@ return async (req, res) => {
 
 exports.handleProgress = (() => {
 
-
-
-
-
-
 return async (req, res) => {
   if (allowCors(req, res)) {
     return;
@@ -2040,11 +1999,6 @@ return async (req, res) => {
 })();
 
 exports.handleReactions = (() => {
-
-
-
-
-
 
 const FREE_TTS_BASE_URL = "https://freetts.org/api";
 const MAX_TTS_CHARS = 1000;
@@ -2493,10 +2447,6 @@ return async (req, res) => {
 
 exports.handleAvatar = (() => {
 
-
-
-
-
 function hasValidImageSignature(contentType, bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 12) {
     return false;
@@ -2515,8 +2465,6 @@ function hasValidImageSignature(contentType, bytes) {
   }
   return false;
 }
-
-
 
 return async (req, res) => {
   if (allowCors(req, res)) {
@@ -2668,11 +2616,6 @@ return async (req, res) => {
 
 exports.handleProfile = (() => {
 
-
-
-
-
-
 function publicUser(row) {
   return {
     id: row.id,
@@ -2758,7 +2701,6 @@ async function loadReadingHistoryForUser(userId) {
     lastReadAt: row.last_read_at,
   }));
 }
-
 
 return async (req, res) => {
   if (allowCors(req, res)) {
@@ -3117,13 +3059,6 @@ return async (req, res) => {
 })();
 
 exports.handleDashboard = (() => {
-
-
-
-
-
-
-
 
 return async (req, res) => {
   if (allowCors(req, res)) {
@@ -3600,6 +3535,189 @@ return async (req, res) => {
 
 })();
 
+/*
+ * GET /api/quote — quote of the day, drawn from the Threadboner manuscripts.
+ *
+ * Deliberately touches no database: this is a pure function of the date, so it
+ * stays fast, cannot fail on a cold instance, and is safe to cache hard. The
+ * selection is deterministic, so every visitor on a given day sees the same
+ * line and the response can be held at the edge until midnight.
+ *
+ *   /api/quote                      today's quote
+ *   /api/quote?date=2026-12-31      a specific day's quote
+ *   /api/quote?offset=3             the 4th quote of that day
+ *   /api/quote?tag=door&limit=5     quotes carrying one tag
+ *   /api/quote?format=feed          RSS, for readers and bots
+ */
+const quoteRouteHandler = (() => {
+  const quotes = require("../lib/api/quotes");
+
+  function quoteEtag(dateKey, offset, tag) {
+    return `W/"tbq-${dateKey}-${offset}-${tag || "all"}"`;
+  }
+
+  function cacheControl(req) {
+    // Until midnight UTC the answer cannot change, so let the edge keep it.
+    return "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400";
+  }
+
+  function localUtcDate() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function readParams(req) {
+    // Vercel populates req.query; other hosts only give the raw string. Read the
+    // query string properly and only fall back to req.query for keys it lacks —
+    // feeding a bare value straight into URLSearchParams turns "2026-01-01" into
+    // a *key* with an empty value, which silently ignores the date.
+    const qs = String((req.url || "").split("?")[1] || "").replace(/^[?&]+/, "");
+    const sp = new URLSearchParams(qs);
+    const q = req.query || {};
+
+    const pick = (key, alias) => {
+      const fromUrl = sp.get(key);
+      if (fromUrl !== null && fromUrl !== "") return fromUrl;
+      const raw = q[key] !== undefined ? q[key] : alias ? q[alias] : undefined;
+      if (raw === undefined || raw === null || raw === "") return null;
+      return Array.isArray(raw) ? raw[0] : String(raw);
+    };
+
+    const date = pick("date", "d");
+    const offsetRaw = pick("offset", "o");
+    const tagRaw = pick("tag");
+    const limitRaw = pick("limit");
+    const formatRaw = pick("format");
+
+    const offset = Number.parseInt(offsetRaw || "0", 10);
+    const limit = Number.parseInt(limitRaw || "0", 10);
+
+    return {
+      date: date || localUtcDate(),
+      offset: Number.isFinite(offset) ? offset : 0,
+      tag: tagRaw ? String(tagRaw).toLowerCase() : null,
+      limit: Number.isFinite(limit) ? limit : 0,
+      format: formatRaw ? String(formatRaw).toLowerCase() : "json",
+    };
+  }
+
+  function buildFeed(dateKey, all) {
+    const items = all
+      .slice(0, 30)
+      .map(
+        (q) =>
+          `    <item>` +
+          `<title>${escapeXml(q.source)}</title>` +
+          `<description>${escapeXml(q.text)}</description>` +
+          `<guid isPermaLink="false">tbq-${q.id}-${dateKey}</guid>` +
+          `<category>${escapeXml(q.tag)}</category>` +
+          `</item>`,
+      )
+      .join("\n");
+    return (
+      `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<rss version="2.0"><channel>\n` +
+      `  <title>Threadboner — Quotes</title>\n` +
+      `  <description>A line a day from the Threadborn manuscripts.</description>\n` +
+      `  <link>/api/quote</link>\n` +
+      `  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n` +
+      items +
+      `\n</channel></rss>`
+    );
+  }
+
+  function escapeXml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  async function handleQuote(req, res) {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      if (allowCors(req, res)) return;
+      return fail(res, 405, "Method not allowed");
+    }
+    if (allowCors(req, res)) return;
+
+    if (!takeRateLimitToken(`quote:${getClientIp(req)}`, 120, 60_000)) {
+      return fail(res, 429, "Too many quote requests");
+    }
+
+    try {
+      const params = readParams(req);
+
+      // A requested date must be a real calendar date, and we never serve
+      // future lore — a quote from tomorrow is a spoiler by construction.
+      const today = localUtcDate();
+      let dateKey = today;
+      if (params.date !== today) {
+        if (!quotes.isValidIsoDate(params.date)) {
+          return fail(res, 400, "Date must be a real YYYY-MM-DD calendar date");
+        }
+        if (params.date > today) {
+          return fail(res, 400, "That date has not happened yet");
+        }
+        dateKey = params.date;
+      }
+
+      const all = quotes.getQuotes();
+
+      if (params.format === "feed" || params.format === "rss") {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
+        res.setHeader("Cache-Control", cacheControl(req));
+        res.end(buildFeed(dateKey, all));
+        return;
+      }
+
+      const scoped = params.tag
+        ? quotes.filterQuotes({ tag: params.tag, limit: params.limit })
+        : all;
+
+      if (!scoped.length) {
+        return fail(res, 404, `No quotes tagged "${params.tag}"`);
+      }
+
+      // A tag narrows the pool, so the day still has to land inside it.
+      const pool = params.tag ? scoped : all;
+      const picked = quotes.pickForDate(dateKey, params.offset);
+      const index = pool.findIndex((q) => q.id === picked.id);
+      const quote = index >= 0 ? picked : pool[0];
+
+      res.setHeader("ETag", quoteEtag(dateKey, params.offset, params.tag));
+      if (req.headers["if-none-match"] === quoteEtag(dateKey, params.offset, params.tag)) {
+        res.statusCode = 304;
+        res.end();
+        return;
+      }
+
+      return success(
+        res,
+        {
+          quote,
+          date: dateKey,
+          offset: params.offset,
+          tag: params.tag,
+          total: all.length,
+          available: scoped.length,
+          tags: quotes.getTags(),
+          source: "Threadboner manuscripts",
+        },
+        200,
+        { "Cache-Control": cacheControl(req), ETag: quoteEtag(dateKey, params.offset, params.tag) },
+      );
+    } catch (error) {
+      return fail(res, 500, "Could not resolve a quote");
+    }
+  }
+
+  return handleQuote;
+})();
+
+exports.handleQuote = quoteRouteHandler;
+
 const routeHandlers = new Map([
   ["/api/auth/login", exports.handleLogin],
   ["/api/auth/logout", exports.handleLogout],
@@ -3616,6 +3734,7 @@ const routeHandlers = new Map([
   ["/api/upload/avatar", exports.handleAvatar],
   ["/api/upload/banner", exports.handleAvatar],
   ["/api/user/profile", exports.handleProfile],
+  ["/api/quote", quoteRouteHandler],
 ]);
 
 function getApiPath(req) {

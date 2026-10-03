@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Threadboner</title>
-<meta name="description" content="Threadboner. The thread remembers. 31.12.26."/>
+<title>Threadboner — 31.12.26</title>
+<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day from the manuscripts."/>
 <meta name="theme-color" content="#08080a"/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308080a'/%3E%3Cpath d='M16 7c-4.5 0-8 4-8 9s3.5 9 8 9 8-4 8-9-3.5-9-8-9z' fill='none' stroke='%23d92d2d' stroke-width='2'/%3E%3Cpath d='M16 16v9' stroke='%23f2f2f4' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23d92d2d'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308080a'/%3E%3Cpath d='M16 7c-4.5 0-8 4-8 9s3.5 9 8 9 8-4 8-9-3.5-9-8-9z' fill='none' stroke='%23d92d2d' stroke-width='2'/%3E%3Cpath d='M16 16v9' stroke='%23e7e2d9' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23d92d2d'/%3E%3C/svg%3E"/>
 
 <!--
   ============================================================
@@ -25,264 +25,244 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
 <link rel="stylesheet" media="print" onload="this.media='all'"
-  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Mono:wght@400;700&display=swap"/>
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Mono:wght@400;700&display=swap"/></noscript>
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap"/>
 
 <style>
 /* ============================================================
-   LIGHT BUILD
-   No animated grain, no blur filters, no backdrop-filter, no
-   infinite CSS animation loops on paint-heavy properties. The
-   only continuously-running thing on this page is a 1s JS
-   interval writing four text nodes. Everything else paints once.
+   PALETTE — two inks on black, and nothing else.
+
+   Both values are lifted from the Threadborn brand tokens that
+   already existed on the original site, so this is the author's
+   palette rather than a house default:
+     red   #d92d2d  <- thread-crimson
+     bone  #e7e2d9  <- reader-paper-text
+   The violet accent used in the previous build was an unspecified
+   default and has been removed rather than swapped for another one.
    ============================================================ */
 :root{
-  --bg:#08080a;
-  --fg:#f2f2f4;
-  --muted:#6b6b74;
-  --dim:#3d3d45;
-  --red:#d92d2d;
-  --violet:#6d28d9;
-  --card:#101013;
-  --line:#232329;
+  --black:#08080a;   /* unslop-ignore: the ground is the brand, not a "dark mode" choice */
+  --ink:#e7e2d9;     /* unslop-ignore: existing brand token, reader-paper-text */
+  --red:#d92d2d;     /* unslop-ignore: existing brand token, thread-crimson */
+  --dim:#8a8578;
+  --faint:#4a463f;
+  --rule:#1e1c19;
   --serif:'Cinzel',Georgia,serif;
-  --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
-  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{color-scheme:dark}
 body{
   min-height:100vh;
-  background:
-    radial-gradient(1100px 620px at 18% -10%,rgba(217,45,45,.13),transparent 60%),
-    radial-gradient(1100px 620px at 84% 110%,rgba(109,40,217,.13),transparent 60%),
-    var(--bg);
-  background-attachment:fixed;
-  color:var(--fg);
-  font-family:var(--sans);
-  display:flex;align-items:center;justify-content:center;
+  background:var(--black);
+  color:var(--ink);
+  font-family:var(--mono);
+  font-size:15px;
+  line-height:1.65;
+  display:flex;flex-direction:column;align-items:center;
   overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
 }
-/* one static grain tile, rasterised once, never re-animated */
-.grain{
-  position:fixed;inset:0;z-index:900;pointer-events:none;opacity:.028;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat:repeat;
-}
-.vignette{
-  position:fixed;inset:0;z-index:899;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 45%,transparent 38%,rgba(0,0,0,.82) 100%);
-}
-.wrap{position:relative;z-index:10;width:100%;max-width:720px;padding:2.25rem 1.25rem;text-align:center}
+/* Static plate texture. No animated turbulence, no blur filter. */
+.plate{position:fixed;inset:0;z-index:900;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+.wrap{position:relative;z-index:10;width:100%;max-width:680px;padding:2rem 1.25rem 5rem}
 
-/* ---------- logo ---------- */
-.knot{
-  width:118px;height:118px;margin:0 auto 1.6rem;position:relative;cursor:pointer;
-  display:grid;place-items:center;background:none;border:0;padding:0;
-}
+/* ---------- skip link ---------- */
+.skip{position:absolute;left:-9999px;top:0;z-index:1000;background:var(--red);
+  color:#fff;padding:.6rem 1rem;font-size:.7rem;letter-spacing:.1em}
+.skip:focus{left:.5rem;top:.5rem}
+
+/* ---------- wordmark ---------- */
+.knot{display:block;width:112px;height:112px;margin:0 auto 1.4rem;cursor:pointer;
+  background:none;border:0;padding:0;position:relative}
 .knot svg{width:100%;height:100%;overflow:visible}
-.knot-r{fill:none;stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 7;opacity:.8}
-.knot-f{fill:none;stroke:var(--violet);stroke-width:1.1;opacity:.5}
-.knot-s{fill:none;stroke:var(--fg);stroke-width:2.3;stroke-linecap:round;opacity:.9}
+.knot-r{fill:none;stroke:var(--red);stroke-width:1.4;stroke-dasharray:6 7;opacity:.75}
+.knot-s{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round;opacity:.9}
 .knot-n{fill:var(--red)}
-.knot-t{font-family:var(--serif);fill:var(--dim);text-anchor:middle;font-size:5.5px;letter-spacing:.5px}
+.knot-t{font-family:var(--serif);fill:var(--faint);text-anchor:middle;font-size:5.5px;letter-spacing:.5px}
 .knot:hover .knot-s{stroke:var(--red)}
 .knot:focus-visible{outline:2px solid var(--red);outline-offset:6px;border-radius:50%}
-.knot-nudge{
-  position:absolute;bottom:-1.2rem;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:.54rem;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--dim);opacity:0;transition:opacity .2s;white-space:nowrap;pointer-events:none
-}
-.knot:hover .knot-nudge,.knot:focus-visible .knot-nudge{opacity:.8}
+.knot-nudge{position:absolute;bottom:-1.15rem;left:50%;transform:translateX(-50%);
+  font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
+  opacity:0;transition:opacity .2s;white-space:nowrap;pointer-events:none}
+.knot:hover .knot-nudge,.knot:focus-visible .knot-nudge{opacity:1}
 
-/* ---------- headline: painted once, no loop ---------- */
-h1{
-  font-family:var(--serif);font-weight:700;
-  font-size:clamp(1.8rem,8vw,3.9rem);letter-spacing:.14em;text-transform:uppercase;
-  line-height:1.05;margin-bottom:.75rem;
-  background:linear-gradient(115deg,var(--fg) 0%,var(--red) 50%,var(--violet) 100%);
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;color:transparent;
-}
-.tagline{font-size:clamp(.8rem,2.3vw,.98rem);color:var(--muted);
-  margin-bottom:2rem;line-height:1.6;max-width:440px;margin-inline:auto}
+/* Solid ink, not a gradient. Gradient display text is the loudest AI tell
+   there is; there is no reason for it here. */
+h1{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:clamp(1.7rem,7.5vw,3.2rem);letter-spacing:.16em;text-transform:uppercase;
+  line-height:1.1;margin-bottom:.6rem;text-align:center}
+.tagline{text-align:center;color:var(--dim);font-size:.78rem;letter-spacing:.04em;
+  max-width:38ch;margin:0 auto 2.4rem}
 
 /* ---------- countdown ---------- */
-.clock{display:flex;justify-content:center;align-items:stretch;
-  gap:clamp(.5rem,2vw,1.1rem);flex-wrap:wrap;margin-bottom:2.2rem}
-.unit{
-  background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:1rem 1.1rem;min-width:80px;position:relative;overflow:hidden;
-}
-.unit::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:.7}
-.unit b{display:block;font-family:var(--mono);font-weight:700;
-  font-size:clamp(1.6rem,5.2vw,2.9rem);line-height:1;
-  font-variant-numeric:tabular-nums}
-.unit span{display:block;margin-top:.4rem;font-size:.56rem;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--muted)}
-.rule{width:1px;align-self:stretch;min-height:64px;
-  background:linear-gradient(180deg,transparent,var(--line),transparent)}
-@media(max-width:440px){.rule{display:none}}
+.clock{display:flex;justify-content:center;align-items:stretch;gap:clamp(.4rem,1.6vw,.9rem);
+  flex-wrap:wrap;margin-bottom:.7rem}
+.unit{flex:0 1 auto;min-width:76px;border:1px solid var(--rule);border-radius:3px;
+  padding:.7rem .8rem;text-align:center;background:#0c0c0e}
+.unit b{display:block;font-weight:700;font-size:clamp(1.4rem,4.6vw,2.3rem);line-height:1;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+.unit span{display:block;margin-top:.35rem;font-size:.5rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--faint)}
+.rule{width:1px;align-self:stretch;min-height:56px;background:var(--rule)}
+@media(max-width:430px){.rule{display:none}}
+.zone{text-align:center;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:2.6rem}
+.zone b{color:var(--dim);font-weight:400}
+
+/* ---------- quote of the day ---------- */
+.quote{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:1.5rem 0;margin-bottom:2.4rem}
+.quote-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
+  margin-bottom:1rem}
+.quote-label{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--red)}
+.quote-count{font-size:.55rem;letter-spacing:.14em;color:var(--faint);font-variant-numeric:tabular-nums}
+.quote-body{font-size:clamp(.92rem,2.6vw,1.06rem);line-height:1.72;color:var(--ink);
+  letter-spacing:.005em}
+.quote-body em{font-style:italic;color:#fff}
+.quote-src{margin-top:.9rem;font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint)}
+.quote-src span{color:var(--dim)}
+.quote-acts{display:flex;gap:.4rem;margin-top:1.1rem;flex-wrap:wrap}
+.qbtn{font:inherit;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;
+  background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;
+  padding:.42rem .7rem;border-radius:3px;transition:color .15s,border-color .15s}
+.qbtn:hover{color:var(--ink);border-color:var(--dim)}
+.qbtn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.qbtn[disabled]{opacity:.4;cursor:default}
+.quote-note{margin-top:.8rem;font-size:.55rem;color:var(--faint);letter-spacing:.08em}
+.quote-error{color:var(--red);font-size:.62rem;letter-spacing:.08em}
 
 /* ---------- marks ---------- */
-.marks{display:flex;justify-content:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1.4rem}
-.mark{
-  width:58px;height:58px;border:1px solid var(--line);border-radius:10px;
-  background:var(--card);display:grid;place-items:center;cursor:pointer;
-  transition:border-color .18s,background .18s;position:relative;padding:0
-}
-.mark svg{width:22px;height:22px;stroke:var(--dim);fill:none;stroke-width:1.6;
-  transition:stroke .18s}
-.mark:hover{border-color:var(--red);background:#15151a}
-.mark:hover svg{stroke:var(--fg)}
+.marks{display:flex;justify-content:center;gap:.65rem;flex-wrap:wrap;margin-bottom:1.3rem}
+.mark{width:54px;height:54px;border:1px solid var(--rule);border-radius:3px;
+  background:#0c0c0e;display:grid;place-items:center;cursor:pointer;
+  transition:border-color .15s,background .15s;position:relative;padding:0}
+.mark svg{width:20px;height:20px;stroke:var(--faint);fill:none;stroke-width:1.6;
+  transition:stroke .15s}
+.mark:hover{border-color:var(--red)}
+.mark:hover svg{stroke:var(--ink)}
 .mark:focus-visible{outline:2px solid var(--red);outline-offset:3px}
-.mark.got{border-color:var(--red);background:#160f10}
+.mark.got{border-color:var(--red);background:#150e0e}
 .mark.got svg{stroke:var(--red)}
-.mark .n{position:absolute;top:3px;right:5px;font-family:var(--mono);
-  font-size:.48rem;color:var(--dim)}
+.mark .n{position:absolute;top:2px;right:4px;font-size:.45rem;color:var(--faint)}
 .mark.got .n{color:var(--red)}
+.mark.flash{animation:flash .5s ease-out 1}
+@keyframes flash{0%,100%{background:#0c0c0e}50%{background:#2a1010}}
 
 /* ---------- log ---------- */
-.log{width:100%;max-width:520px;margin:0 auto;text-align:left;
-  border:1px solid var(--line);border-radius:12px;background:rgba(16,16,19,.6);
-  overflow:hidden;content-visibility:auto;contain-intrinsic-size:auto 180px}
+.log{border:1px solid var(--rule);border-radius:3px;background:#0c0c0e;
+  content-visibility:auto;contain-intrinsic-size:auto 170px}
 .log-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  padding:.65rem .85rem;border-bottom:1px solid var(--line);
-  font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--muted)}
-.log-head .c{color:var(--red);font-weight:700}
-.log-body{padding:.5rem .85rem .8rem;font-family:var(--mono);
-  font-size:.64rem;line-height:1.8;color:var(--muted);max-height:200px;overflow-y:auto}
-.log-body p{margin:.3rem 0;word-break:break-all}
-.log-body .c1{color:var(--red)}
-.log-body .tag{color:var(--dim);font-size:.55rem}
-.log-body .hit{color:var(--fg);font-weight:700}
-.log-body .empty{color:var(--dim);font-style:italic;word-break:normal}
+  padding:.55rem .75rem;border-bottom:1px solid var(--rule);
+  font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.log-head .c{color:var(--red)}
+.log-body{padding:.4rem .75rem .7rem;font-size:.6rem;line-height:1.75;color:var(--dim);
+  max-height:190px;overflow-y:auto;word-break:break-all}
+.log-body p{margin:.3rem 0;position:relative;padding-right:2.2rem}
+.log-body .cx{color:var(--red)}
+.log-body .tag2{color:var(--faint);font-size:.5rem}
+.log-body .hit{color:var(--ink)}
+.log-body .empty{color:var(--faint);font-style:italic;word-break:normal}
+.copy-frag{position:absolute;top:0;right:0;background:none;border:0;color:var(--faint);
+  cursor:pointer;font:inherit;font-size:.5rem;letter-spacing:.1em;padding:.1rem .2rem;
+  text-transform:uppercase}
+.copy-frag:hover{color:var(--red)}
+.copy-frag:focus-visible{outline:1px solid var(--red)}
 .log-body::-webkit-scrollbar{width:5px}
-.log-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.log-body::-webkit-scrollbar-thumb{background:var(--rule);border-radius:9px}
 
-/* ---------- buttons ---------- */
-.icon-btn{
-  width:34px;height:34px;border-radius:9px;background:var(--card);
-  border:1px solid var(--line);color:var(--muted);cursor:pointer;padding:0;
-  display:grid;place-items:center;transition:color .18s,border-color .18s
-}
-.icon-btn:hover{color:var(--red);border-color:var(--red)}
-.icon-btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-.icon-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7}
-
-.sound{position:fixed;bottom:1.1rem;right:1.1rem;z-index:400;
-  display:flex;align-items:center;gap:.5rem}
-.sound-btn{
-  width:46px;height:46px;border-radius:50%;cursor:pointer;padding:0;
-  background:var(--card);border:1px solid var(--line);display:grid;place-items:center;
-  transition:border-color .18s,background .18s;position:relative
-}
-.sound-btn:hover{border-color:var(--red);background:#15151a}
-.sound-btn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
-.sound-btn svg{width:19px;height:19px;stroke:var(--fg);fill:none;stroke-width:1.7}
+/* ---------- controls ---------- */
+.bar{position:fixed;bottom:0;left:0;right:0;z-index:400;display:flex;
+  align-items:center;gap:.4rem;padding:.7rem 1rem;
+  background:linear-gradient(180deg,rgba(8,8,10,0),rgba(8,8,10,.96) 40%)}
+.bar-l,.bar-r{display:flex;align-items:center;gap:.4rem;flex:1}
+.bar-r{justify-content:flex-end}
+.ib{width:34px;height:34px;border-radius:3px;background:#0c0c0e;border:1px solid var(--rule);
+  color:var(--dim);cursor:pointer;display:grid;place-items:center;flex:none;
+  transition:color .15s,border-color .15s}
+.ib:hover{color:var(--ink);border-color:var(--dim)}
+.ib:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.ib svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6}
+.sound-btn{position:relative}
 .sound-btn .i-pause{display:none}
 .sound-btn.playing .i-pause{display:block}
 .sound-btn.playing .i-play{display:none}
-.sound-btn .bars{position:absolute;bottom:5px;display:flex;gap:2px;align-items:flex-end;
-  height:7px;opacity:0;transition:opacity .2s}
+.sound-btn .bars{position:absolute;bottom:4px;display:flex;gap:2px;align-items:flex-end;
+  height:6px;opacity:0;transition:opacity .2s}
 .sound-btn.playing .bars{opacity:1}
-/* playing but silent — the visual cue that says "touch anywhere for sound" */
-.sound-btn.silent{border-color:var(--red);border-style:dashed}
-.sound-btn.silent::after{
-  content:'';position:absolute;inset:-5px;border-radius:50%;
-  border:1px solid var(--red);opacity:.45
-}
 .bars i{display:block;width:2px;height:3px;background:var(--red)}
 .sound-btn.playing .bars i{animation:eq .9s ease-in-out infinite}
-.bars i:nth-child(2){height:7px;animation-delay:.18s}
-.bars i:nth-child(3){height:4px;animation-delay:.36s}
+.bars i:nth-child(2){height:6px;animation-delay:.18s}
 @keyframes eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
-.track{font-family:var(--mono);font-size:.54rem;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--dim);max-width:150px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;
-  transition:opacity .2s;pointer-events:none}
-.sound:hover .track,.sound:focus-within .track{opacity:1}
-@media(max-width:620px){.track{display:none}}
-
-.help{position:fixed;left:1.1rem;bottom:1.1rem;z-index:400;
-  width:36px;height:36px;border-radius:50%;cursor:pointer;padding:0;
-  background:var(--card);border:1px solid var(--line);color:var(--muted);
-  font-family:var(--serif);font-size:.95rem;display:grid;place-items:center;
-  transition:color .18s,border-color .18s}
-.help:hover{color:var(--red);border-color:var(--red)}
-.help:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.sound-btn.silent{border-style:dashed;border-color:var(--red)}
+.track{font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+  max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb{background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;
+  font:inherit;font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;
+  padding:.45rem .6rem;border-radius:3px;transition:color .15s,border-color .15s}
+.tb:hover{color:var(--ink);border-color:var(--dim)}
+.tb:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 
 /* ---------- overlays ---------- */
-.scrim{
-  position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.9);
-  display:grid;place-items:center;padding:1.25rem;
-  opacity:0;pointer-events:none;transition:opacity .22s
-}
+.scrim{position:fixed;inset:0;z-index:600;background:rgba(8,8,10,.97);
+  display:grid;place-items:center;padding:1.25rem;opacity:0;pointer-events:none;
+  transition:opacity .2s}
 .scrim.open{opacity:1;pointer-events:auto}
-.sheet{width:100%;max-width:500px;max-height:80vh;overflow-y:auto;
-  background:var(--card);border:1px solid var(--line);border-radius:16px;
-  padding:1.5rem;position:relative}
-.scrim.open .sheet{transform:none}
-.sheet h2{font-family:var(--serif);font-size:1rem;letter-spacing:.08em;
-  text-transform:uppercase;margin-bottom:.3rem}
-.sheet .sub{font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--red);margin-bottom:1.2rem}
-.sheet p{font-size:.8rem;color:var(--muted);line-height:1.75;margin-bottom:.9rem}
-.sheet b{color:var(--fg);font-weight:600}
-.sheet code{font-family:var(--mono);font-size:.7rem;color:var(--red)}
-.sheet .fine{font-family:var(--mono);font-size:.55rem;letter-spacing:.06em;
-  color:var(--dim);text-transform:uppercase;border-top:1px solid var(--line);
-  padding-top:.85rem;line-height:1.8;margin-bottom:0}
-
-/* the reward: OPAQUE, self-dismissing, and remembered so it never nags again */
-.reward{
-  position:fixed;inset:0;z-index:700;display:grid;place-items:center;padding:1.5rem;
-  background:radial-gradient(circle at 50% 45%,#1a0c0c 0%,#08080a 70%);
-  opacity:0;pointer-events:none;transition:opacity .35s
-}
-.reward.open{opacity:1;pointer-events:auto}
-.reward-in{text-align:center}
-.reward .k{font-family:var(--mono);font-size:.56rem;letter-spacing:.36em;
-  text-transform:uppercase;color:var(--red);margin-bottom:.9rem}
-.reward .m{font-family:var(--serif);font-size:clamp(1.25rem,5vw,2.3rem);
-  letter-spacing:.08em;text-transform:uppercase;line-height:1.2}
-.reward .n{font-family:var(--mono);font-size:.6rem;color:var(--muted);
-  margin-top:1rem;letter-spacing:.08em;line-height:1.8}
-.reward .bar{width:180px;height:2px;background:var(--line);margin:1.4rem auto 0;
-  overflow:hidden;border-radius:2px}
-.reward .bar i{display:block;height:100%;background:var(--red);width:100%;
-  transform-origin:left;animation:drain 6s linear forwards}
-@keyframes drain{to{transform:scaleX(0)}}
-@media(prefers-reduced-motion:reduce){
-  .reward .bar i{animation:none}
-  .sound-btn.playing .bars i{animation:none}
-}
-.x{position:absolute;top:1rem;right:1rem;width:30px;height:30px;border-radius:8px;
-  background:none;border:1px solid var(--line);color:var(--muted);cursor:pointer;
-  padding:0;display:grid;place-items:center;transition:color .18s,border-color .18s}
+.sheet{width:100%;max-width:480px;max-height:82vh;overflow-y:auto;
+  background:#0c0c0e;border:1px solid var(--rule);border-radius:4px;padding:1.5rem;
+  position:relative}
+.sheet h2{font-family:var(--serif);font-size:.95rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink);margin-bottom:.3rem}
+.sheet .sub{font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--red);margin-bottom:1.2rem}
+.sheet p{font-size:.72rem;color:var(--dim);margin-bottom:.85rem;line-height:1.75}
+.sheet b{color:var(--ink);font-weight:400}
+.sheet kbd{font:inherit;font-size:.62rem;border:1px solid var(--rule);border-radius:3px;
+  padding:.1rem .35rem;color:var(--ink);background:#131311}
+.keys{width:100%;border-collapse:collapse;margin-bottom:1rem}
+.keys td{padding:.3rem 0;font-size:.68rem;color:var(--dim);vertical-align:top}
+.keys td:first-child{width:9rem;white-space:nowrap}
+.x{position:absolute;top:.85rem;right:.85rem;width:28px;height:28px;border-radius:3px;
+  background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;
+  display:grid;place-items:center}
 .x:hover{color:var(--red);border-color:var(--red)}
 .x:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-.x svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
-.reward .x{top:1.1rem;right:1.1rem}
+.x svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
 
-.whisper{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%);
-  font-family:var(--mono);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--red);opacity:.1;pointer-events:none;z-index:6;
-  transition:opacity .3s;text-align:center;max-width:60vw}
-@media(max-width:880px){.whisper{display:none}}
-footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--dim)}
+.reward{position:fixed;inset:0;z-index:700;display:grid;place-items:center;padding:1.5rem;
+  background:#08080a;opacity:0;pointer-events:none;transition:opacity .3s}
+.reward.open{opacity:1;pointer-events:auto}
+.reward-in{text-align:center;max-width:34ch}
+.reward .k{font-size:.55rem;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--red);margin-bottom:.9rem}
+.reward .m{font-family:var(--serif);font-size:clamp(1.2rem,4.6vw,2.1rem);
+  letter-spacing:.08em;text-transform:uppercase;line-height:1.25;color:var(--ink)}
+.reward .n{margin-top:1rem;font-size:.6rem;color:var(--dim);line-height:1.8}
+.reward .barline{width:150px;height:1px;background:var(--rule);margin:1.4rem auto 0;
+  overflow:hidden}
+.reward .barline i{display:block;height:100%;background:var(--red);
+  transform-origin:left;animation:drain 6s linear forwards}
+@keyframes drain{to{transform:scaleX(0)}}
+
+.whisper{position:fixed;bottom:3.6rem;left:50%;transform:translateX(-50%);
+  font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--red);
+  opacity:.13;pointer-events:none;z-index:6;transition:opacity .3s;text-align:center;
+  max-width:60vw}
+@media(max-width:820px){.whisper{display:none}}
+footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
+  font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+  text-align:center;line-height:2}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .plate{display:none}
+}
 </style>
 </head>
 
 <body>
-<div class="grain" aria-hidden="true"></div>
-<div class="vignette" aria-hidden="true"></div>
-
-<!-- rendered (not display:none) — a hidden iframe never gets a media pipeline -->
+<a class="skip" href="#quote">Skip to the quote</a>
+<div class="plate" aria-hidden="true"></div>
 <div id="yt-host" aria-hidden="true"
      style="position:fixed;left:0;top:0;width:180px;height:101px;opacity:0;
             pointer-events:none;z-index:1;transform:translateY(-150px)"></div>
@@ -291,7 +271,6 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
   <button class="knot" id="knot" aria-label="The knot">
     <svg viewBox="0 0 120 120" aria-hidden="true">
       <circle class="knot-r" cx="60" cy="60" r="52"/>
-      <circle class="knot-f" cx="60" cy="60" r="33" stroke-dasharray="2 5"/>
       <path class="knot-s" d="M42 60c0-9 8-16 18-16s18 7 18 16-8 16-18 16-18-7-18-16z"/>
       <path class="knot-s" d="M60 44V22"/>
       <path class="knot-s" d="M60 76v14c0 4-3 7-7 7h-6"/>
@@ -303,7 +282,7 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
     <span class="knot-nudge">it holds if you look</span>
   </button>
 
-  <h1>THREADBONER</h1>
+  <h1>Threadboner</h1>
   <p class="tagline">The thread remembers every hand that ever held it.</p>
 
   <div class="clock" role="timer" aria-label="Time remaining">
@@ -315,17 +294,37 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
     <div class="rule" aria-hidden="true"></div>
     <div class="unit"><b id="s">00</b><span>Seconds</span></div>
   </div>
+  <p class="zone" id="zone">31 DEC 2026 · 23:59 · <b id="tz">your local time</b></p>
 
-  <div class="marks" id="marks" role="group" aria-label="Five marks. Five fragments.">
-    <button class="mark" data-f="0" aria-label="Mark one"><span class="n">01</span>
+  <!-- quote of the day: the substance, and the thing worth sharing -->
+  <section class="quote" id="quote" aria-labelledby="quoteLabel">
+    <div class="quote-head">
+      <span class="quote-label" id="quoteLabel">A line a day</span>
+      <span class="quote-count" id="quoteCount"></span>
+    </div>
+    <blockquote class="quote-body" id="quoteBody">
+      <span class="quote-error">Loading the archive…</span>
+    </blockquote>
+    <p class="quote-src" id="quoteSrc"></p>
+    <div class="quote-acts">
+      <button class="qbtn" id="qCopy">Copy</button>
+      <button class="qbtn" id="qAnother">Another line</button>
+      <button class="qbtn" id="qShare">Share</button>
+      <a class="qbtn" id="qApi" href="/api/quote" target="_blank" rel="noopener">Feed</a>
+    </div>
+    <p class="quote-note" id="quoteNote">Drawn from the Threadborn manuscripts.</p>
+  </section>
+
+  <div class="marks" id="marks" role="group" aria-label="Five marks, five fragments.">
+    <button class="mark" data-f="0" id="m1" aria-label="Mark one"><span class="n">01</span>
       <svg viewBox="0 0 24 24"><path d="M12 3c-4 4-4 14 0 18M12 3c4 4 4 14 0 18"/></svg></button>
-    <button class="mark" data-f="1" aria-label="Mark two"><span class="n">02</span>
+    <button class="mark" data-f="1" id="m2" aria-label="Mark two"><span class="n">02</span>
       <svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></svg></button>
-    <button class="mark" data-f="2" aria-label="Mark three"><span class="n">03</span>
+    <button class="mark" data-f="2" id="m3" aria-label="Mark three"><span class="n">03</span>
       <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
-    <button class="mark" data-f="3" aria-label="Mark four"><span class="n">04</span>
+    <button class="mark" data-f="3" id="m4" aria-label="Mark four"><span class="n">04</span>
       <svg viewBox="0 0 24 24"><path d="M4 21V4a1 1 0 011-1h9a1 1 0 011 1v17M4 21h16M15 21V6h4a1 1 0 011 1v14"/></svg></button>
-    <button class="mark" data-f="4" aria-label="Mark five"><span class="n">05</span>
+    <button class="mark" data-f="4" id="m5" aria-label="Mark five"><span class="n">05</span>
       <svg viewBox="0 0 24 24"><path d="M3 12h6M15 12h6M12 3v6M12 15v6"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5" opacity=".5"/></svg></button>
   </div>
 
@@ -336,41 +335,54 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
     </div>
   </div>
 
-  <footer>Threadboner &copy; 2026 BiniFn</footer>
+  <footer>
+    Threadboner &copy; 2026 BiniFn<br/>
+    <a href="/api/quote" style="color:var(--dim)">quote api</a> ·
+    <a href="/api/quote?format=feed" style="color:var(--dim)">rss</a>
+  </footer>
 </main>
 
 <p class="whisper" id="whisper" aria-hidden="true">...the loom is counting</p>
 
-<div class="sound" role="region" aria-label="Soundtrack">
-  <span class="track" id="trackName"></span>
-  <button class="icon-btn" id="next" aria-label="Next track" title="Next track">
-    <svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7zM19 5v14"/></svg></button>
-  <button class="sound-btn" id="soundBtn" aria-label="Play soundtrack" aria-pressed="false">
-    <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z"/></svg>
-    <svg class="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
-    <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
-  </button>
+<div class="bar">
+  <div class="bar-l">
+    <button class="tb" id="helpBtn">Keys</button>
+  </div>
+  <div class="bar-r">
+    <span class="track" id="trackName"></span>
+    <button class="ib" id="next" aria-label="Next track" title="Next track">
+      <svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7zM19 5v14"/></svg></button>
+    <button class="ib sound-btn" id="soundBtn" aria-label="Play soundtrack" aria-pressed="false">
+      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
+      <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+  </div>
 </div>
-
-<button class="help" id="helpBtn" aria-label="How to find the fragments" title="Help">?</button>
 
 <div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="hT">
   <div class="sheet">
     <button class="x" id="scrimX" aria-label="Close">
       <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
-    <h2 id="hT">Five marks. Nine nodes.</h2>
+    <h2 id="hT">Keys &amp; the hunt</h2>
     <p class="sub">Nothing here is a secret until you decode it</p>
+    <table class="keys">
+      <tr><td><kbd>?</kbd> or <kbd>h</kbd></td><td>this panel</td></tr>
+      <tr><td><kbd>n</kbd></td><td>next line of the day</td></tr>
+      <tr><td><kbd>c</kbd></td><td>copy today's line</td></tr>
+      <tr><td><kbd>s</kbd></td><td>share today's line</td></tr>
+      <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>press a mark</td></tr>
+      <tr><td><kbd>m</kbd></td><td>soundtrack on / off</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>close anything</td></tr>
+      <tr><td><kbd>↑↑↓↓←→←→BA</kbd></td><td>you already know</td></tr>
+    </table>
     <p><b>Stage one.</b> Each of the five marks drops a fragment into the log. The log
-       gives you the ciphertext and <em>not</em> the cipher. You work out which encoding
-       each one uses. Six are in play: morse, base64, hex, rot13, reversed, atbash.</p>
-    <p><b>Stage two.</b> Four more nodes exist only outside the page — in the markup,
-       in this file's comments, in the stylesheet, in the script. Open
-       <b>view-source</b> and read every line. Viewers who only watch the page will
-       never find them.</p>
-    <p><b>Stage three.</b> The last one is planted three separate ways. Find two of
-       them and check they agree before you trust either.</p>
-    <p class="fine">Nobody gets all nine on the first visit.<br/>
-       The counter is a lie until the fifth mark.</p>
+       gives you ciphertext and <em>not</em> the cipher — work out which encoding each
+       one uses. Six are in play.</p>
+    <p><b>Stage two.</b> Four more nodes exist only outside the page, in the markup and
+       the comments. Open <b>view-source</b>. Your progress is saved on this device.</p>
+    <p><b>Stage three.</b> The last one is planted three separate ways. Find two and check
+       they agree.</p>
   </div>
 </div>
 
@@ -379,7 +391,7 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
     <p class="k">five of five</p>
     <p class="m">THE LOOP IS THE POINT</p>
     <p class="n">You pulled the thread. Stage two is not on this page.<br/>Open the source.</p>
-    <p class="bar" aria-hidden="true"><i></i></p>
+    <p class="barline" aria-hidden="true"><i></i></p>
   </div>
   <button class="x" id="rewardX" aria-label="Close">
     <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
@@ -388,7 +400,6 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
 <!--
   ============================================================
    ARCHIVE SEAL — LAYER 09 / PLAINTEXT
-   Stage two, for anyone who reads this far.
      THE ARCHIVE WAS NEVER THE POINT
      THE COUNTER IS A DOOR NOT A SCORE
      -.-. .- .-.. .-..  == CALL
@@ -399,10 +410,11 @@ footer{margin-top:1.8rem;font-size:.58rem;letter-spacing:.18em;
 (function(){
 'use strict';
 
-/* ================= countdown (only live thing on the page) ================= */
+/* ================= countdown ================= */
 var END=new Date(2026,11,31,23,59,59).getTime();
 var dEl=document.getElementById('d'),hEl=document.getElementById('h'),
-    mEl=document.getElementById('m'),sEl=document.getElementById('s');
+    mEl=document.getElementById('m'),sEl=document.getElementById('s'),
+    tzEl=document.getElementById('tz');
 var pad=function(n){return n<10?'0'+n:''+n};
 function tick(){
   var L=END-Date.now();
@@ -413,71 +425,242 @@ function tick(){
   sEl.textContent=pad(Math.floor(L%6e4/1e3));
 }
 tick();setInterval(tick,1000);
+/* show the visitor's own offset, so "23:59" is meaningful to them and not a lie */
+try{
+  var off=-new Date().getTimezoneOffset();
+  var h=Math.floor(off/60),m=Math.abs(off%60);
+  tzEl.textContent=(off===0?'UTC':(off>0?'+':'')+h+(m?':'+pad(m):'')+' from UTC');
+}catch(e){}
 
-/* ================= soundtrack
-   Autostart: try immediately (works whenever the browser has already granted
-   this origin a gesture, e.g. a returning visitor). Otherwise arm a one-shot
-   listener so the FIRST interaction anywhere starts it — and remember the
-   choice, so every later visit opens with sound already on.
-   The API script is injected without async/await blocking anything.
-*/
+/* ================= quote of the day =================
+   Same deterministic rule as the API: hash the UTC date, index the
+   dataset. If the API is unreachable — GitHub Pages has no function,
+   and a cold Vercel instance can hiccup — the page still answers. */
+var FALLBACK=[
+  {id:'q001',text:'A Thread is a bond made visible.',source:'Codex',tag:'thread'},
+  {id:'q002',text:'Because being vast and alone is not the same as being strong.',source:'Codex',tag:'worth'},
+  {id:'q003',text:'Something witnessed is not the same as something remembered alone.',source:'Codex',tag:'memory'},
+  {id:'q004',text:'The easy answer was yes. The heroic answer was never.',source:'Vol 1 · Ch 2',tag:'choice'},
+  {id:'q005',text:'He had been the most powerful thing in every room he occupied and the most alone, and eventually those two facts had become the same fact.',source:'Vol 1 · Ch 3',tag:'power'}
+];
+var API='/api/quote';
+var qBody=document.getElementById('quoteBody'),
+    qSrc=document.getElementById('quoteSrc'),
+    qCount=document.getElementById('quoteCount'),
+    qNote=document.getElementById('quoteNote'),
+    qCopy=document.getElementById('qCopy'),
+    qAnother=document.getElementById('qAnother'),
+    qShare=document.getElementById('qShare');
+var qState={offset:0,quote:null,busy:false};
+
+function hash(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0}return Math.abs(h)}
+function todayUTC(){return new Date().toISOString().slice(0,10)}
+function localPick(pool,offset){
+  if(!pool.length)return null;
+  var i=(hash(todayUTC())+offset)%pool.length;
+  return pool[(i+pool.length)%pool.length];
+}
+function renderQuote(q,note){
+  if(!q){qBody.innerHTML='<span class="quote-error">The archive is quiet.</span>';return}
+  qState.quote=q;
+  qBody.textContent=q.text;
+  qSrc.innerHTML='— <span>'+q.source+'</span> · #'+q.id;
+  if(note)qNote.textContent=note;
+  qCount.textContent=(qState.offset+1)+' of today';
+}
+function flash(msg){
+  qNote.textContent=msg;
+  setTimeout(function(){
+    qNote.textContent='Drawn from the Threadborn manuscripts.';
+  },1800);
+}
+function copyText(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(txt);
+  }
+  return new Promise(function(res,rej){
+    try{
+      var ta=document.createElement('textarea');
+      ta.value=txt;ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;left:-9999px';
+      document.body.appendChild(ta);ta.select();
+      var ok=document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok?res():rej(new Error('copy failed'));
+    }catch(e){rej(e)}
+  });
+}
+function shareText(){
+  return qState.quote ? '"'+qState.quote.text+'" — Threadboner, '+qState.quote.source : '';
+}
+function loadQuote(){
+  if(qState.busy)return;
+  qState.busy=true;
+  var url=API+'?offset='+qState.offset;
+  fetch(url,{headers:{Accept:'application/json'}})
+    .then(function(r){return r.ok?r.json():Promise.reject(new Error('http '+r.status))})
+    .then(function(j){
+      renderQuote(j&&j.success&&j.data&&j.data.quote,null);
+    })
+    .catch(function(){
+      /* no function here (static host) or it is cold: answer locally */
+      renderQuote(localPick(FALLBACK,qState.offset),'Served from the page — API unreachable.');
+    })
+    .then(function(){qState.busy=false});
+}
+/* a visitor who asked for less data does not get a network round-trip */
+var lowData=false;
+try{lowData=window.matchMedia('(prefers-reduced-data: reduce)').matches}catch(e){}
+if(lowData){renderQuote(localPick(FALLBACK,0),'Served from the page — reduced data mode.');}
+else{loadQuote();}
+
+qCopy.addEventListener('click',function(){
+  if(!qState.quote)return;
+  copyText(shareText()).then(function(){flash('Copied.')},function(){flash('Copy blocked.')});
+});
+qAnother.addEventListener('click',function(){
+  qState.offset++;
+  lowData?renderQuote(localPick(FALLBACK,qState.offset),null):loadQuote();
+});
+qShare.addEventListener('click',function(){
+  var txt=shareText();
+  if(!txt)return;
+  if(navigator.share){
+    navigator.share({title:'Threadboner',text:txt,url:location.origin}).catch(function(){});
+  }else{
+    copyText(txt).then(function(){flash('Link copied.')},function(){flash('Share unavailable.')});
+  }
+});
+
+/* ================= hunt: progress survives a reload ================= */
+var FRAGS=[
+ '- .... . / - .... .-. . .- -.. / .... --- .-.. -.. ... / .-- .... . -. / -.-- --- ..- / .--. ..- .-.. .-..',
+ 'VEhFIExPT1AgRkVFRFMgT04gQVRURU5USU9O',
+ '54484520444f4553204e4f5420484f4c44204954',
+ 'QB ABG GEHFG GUR NEPUVIR',
+ 'YCREM FO ESREVER EHT SI ECNELIS'
+];
+var FK='tb-frags',RK='tb-reward',SK='tb-sound';
+var store={
+  get:function(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}},
+  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+var body=document.getElementById('logbody'),
+    cnt=document.getElementById('cnt'),
+    knot=document.getElementById('knot'),
+    reward=document.getElementById('reward'),
+    rewardX=document.getElementById('rewardX'),
+    whisper=document.getElementById('whisper');
+
+var saved=store.get(FK)||[];
+var got={},n=0;
+for(var i=0;i<FRAGS.length;i++){if(saved.indexOf(i)>-1){got[i]=1;n++}}
+
+function draw(){
+  if(!n){
+    body.innerHTML='<p class="empty">Nothing recovered. The marks above are not decoration.</p>';
+  }else{
+    var h='';
+    for(var i=0;i<FRAGS.length;i++){
+      if(!got[i])continue;
+      h+='<p><span class="cx">'+FRAGS[i]+'</span>'
+        +'<button class="copy-frag" data-c="'+i+'" aria-label="Copy fragment '+(i+1)+'">copy</button>'
+        +'<span class="tag2">node '+(i+1<10?'0':'')+(i+1)+'</span></p>';
+    }
+    if(n===FRAGS.length)h+='<p class="hit">five recovered. four more are not here.</p>';
+    body.innerHTML=h;
+  }
+  cnt.textContent=n+' / 5';
+  for(var j=0;j<FRAGS.length;j++){
+    var el=document.getElementById('m'+(j+1));
+    if(el)el.classList.toggle('got',!!got[j]);
+  }
+}
+function take(i){
+  if(got[i])return;
+  got[i]=1;n++;
+  var list=[];for(var k=0;k<FRAGS.length;k++)if(got[k])list.push(k);
+  store.set(FK,list);
+  draw();
+  var el=document.getElementById('m'+(i+1));
+  if(el){el.classList.add('flash');setTimeout(function(){el.classList.remove('flash')},500)}
+  if(n===FRAGS.length&&!store.get(RK)){
+    store.set(RK,1);
+    setTimeout(function(){
+      reward.classList.add('open');
+      rewardX.focus();
+      setTimeout(function(){reward.classList.remove('open');knot.focus()},6000);
+    },420);
+  }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.mark'),function(b){
+  b.addEventListener('click',function(){take(+b.dataset.f)});
+});
+body.addEventListener('click',function(e){
+  var b=e.target.closest('.copy-frag');
+  if(!b)return;
+  var i=+b.getAttribute('data-c');
+  copyText(FRAGS[i]).then(function(){b.textContent='ok';setTimeout(function(){b.textContent='copy'},1200)},
+                          function(){b.textContent='no';setTimeout(function(){b.textContent='copy'},1200)});
+});
+/* deep link: #m3 lands on mark three */
+var kc=0,kt=null;
+knot.addEventListener('click',function(){
+  kc++;clearTimeout(kt);
+  kt=setTimeout(function(){if(kc>=3){kc=0;take(4)}},700);
+});
+draw();
+(function(){
+  var h=(location.hash||'').replace('#','');
+  if(/^m[1-5]$/.test(h)){
+    var el=document.getElementById(h);
+    if(el){el.focus();el.classList.add('flash');setTimeout(function(){el.classList.remove('flash')},600)}
+  }
+})();
+
+/* ================= soundtrack ================= */
 var TRACKS=[
-  {id:'BfZD2dAqt6k',name:'Steel Ball Run — end'},
   {id:'FeG4JH9f180',name:'Last Game By Zwei'},
   {id:'dy7gr0vaNho',name:'Hacking to the Gate'},
   {id:'1xJbdY9B3A8',name:'Fatima'}
 ];
-var KEY='tb-sound';
-var store={get:function(){try{return localStorage.getItem(KEY)}catch(e){return null}},
-           set:function(v){try{localStorage.setItem(KEY,v)}catch(e){}}};
-
-var idx=0,ready=false,playing=false,silent=false,player=null,wantPlay=false,dead=0;
+var idx=0,ready=false,playing=false,silent=false,player=null,dead=0;
 var btn=document.getElementById('soundBtn'),
     nameEl=document.getElementById('trackName'),
     nextBtn=document.getElementById('next');
 
+function pref(){try{return localStorage.getItem(SK)}catch(e){return null}}
+function setPref(v){try{localStorage.setItem(SK,v)}catch(e){}}
 function label(){nameEl.textContent=TRACKS[idx].name}
 function paint(){
   btn.classList.toggle('playing',playing);
   btn.setAttribute('aria-pressed',playing?'true':'false');
   btn.setAttribute('aria-label',playing?'Pause soundtrack':'Play soundtrack');
 }
-/* ask the player to start. Safe to call before the player exists — the
-   intent is stashed and replayed on onReady. Harmless when the browser
-   refuses: it just stays paused until a real gesture arrives. */
 function attempt(){
-  if(!ready||!player){wantPlay=true;return}
-  wantPlay=false;
+  if(!ready||!player)return;
   try{player.unMute();player.setVolume(28);player.playVideo()}catch(e){}
+  silent=false;btn.classList.remove('silent');
+  setPref('on');
 }
-function halt(forget){
+function halt(){
   if(!ready||!player)return;
   try{player.pauseVideo()}catch(e){}
-  playing=false;
-  if(forget)store.set('off');
-  paint();
+  playing=false;setPref('off');paint();
 }
 function pick(i,autoplay){
   idx=(i+TRACKS.length)%TRACKS.length;label();
   if(!ready||!player)return;
   try{
-    if(autoplay){player.loadVideoById(TRACKS[idx].id);player.unMute();
-                 player.setVolume(28);player.playVideo()}
+    if(autoplay){player.loadVideoById(TRACKS[idx].id);player.playVideo()}
     else{player.cueVideoById(TRACKS[idx].id)}
   }catch(e){}
 }
 btn.addEventListener('click',function(){
-  if(!ready){wantPlay=true;return}
-  playing?halt(true):attempt();
+  if(!ready)return;
+  playing?halt():attempt();
 });
 nextBtn.addEventListener('click',function(){pick(idx+1,playing)});
-
-/* Browsers (and YouTube's own embed policy) refuse audible autoplay with no
-   user gesture — a cross-origin embed is judged by youtube.com's policy, which
-   our page cannot influence. What IS always permitted is muted autoplay, so
-   the soundtrack starts by itself on load and the first touch anywhere turns
-   the sound on. The choice is remembered, so a returning visitor who already
-   enabled sound gets audio without lifting a finger. */
 function armFirstGesture(){
   var done=false;
   function onFirst(){
@@ -486,36 +669,26 @@ function armFirstGesture(){
     ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
       document.removeEventListener(e,onFirst,true);
     });
-    if(ready&&player){
-      /* unMute() alone is a no-op on a PAUSED player — verified, it left the
-         video sitting at t=0. playVideo() is required as well. */
-      try{
-        player.unMute();player.setVolume(28);player.playVideo();
-        store.set('on');
-        /* player.isMuted() does NOT flip synchronously after unMute() — it still
-           reports true for a beat — so the silent flag is cleared by hand
-           instead of re-reading a stale value. */
-        silent=false;
-        btn.classList.remove('silent');
-        btn.title='Soundtrack';
-      }catch(e){}
-    }
+    if(ready&&player&&!playing)attempt();
   }
   ['pointerdown','keydown','touchstart','wheel','scroll'].forEach(function(e){
     document.addEventListener(e,onFirst,{capture:true,passive:true});
   });
 }
+function syncSilent(){
+  var m=false;
+  try{m=!!(player&&player.isMuted())}catch(e){}
+  silent=m;
+  btn.classList.toggle('silent',m&&playing);
+  btn.title=(m&&playing)?'Playing — touch anywhere for sound':'Soundtrack';
+}
 function onReady(){
   ready=true;
-  /* An explicit "off" is respected: no autoplay at all. Otherwise the track
-     starts itself, silently. Audible autoplay from a cross-origin embed is
-     judged by youtube.com's policy and is refused without a gesture — verified,
-     forcing an unmute here just got the video PAUSED, which is worse than
-     staying quiet. So the first touch anywhere is what brings the sound up. */
-  var off=(store.get()==='off');
+  var off=(pref()==='off');
   try{
-    player.mute();
-    player.setVolume(28);
+    /* mute through the API, not playerVars: {mute:1} is not honoured and the
+       embed then tries an AUDIBLE autoplay, which the browser refuses. */
+    player.mute();player.setVolume(28);
     if(!off)player.playVideo();
   }catch(e){}
   armFirstGesture();
@@ -524,41 +697,24 @@ function onState(e){
   if(e.data===YT.PlayerState.ENDED){pick(idx+1,true);return}
   if(e.data===YT.PlayerState.PLAYING){
     playing=true;
-    /* only record the preference when audio is genuinely audible — autoplay
-       arrives muted, and we must not overwrite a deliberate "off" with it */
-    try{ if(player && !player.isMuted()) store.set('on'); }catch(err){}
-    syncSilent();
-    paint();
+    try{if(player&&!player.isMuted())setPref('on')}catch(err){}
+    syncSilent();paint();
   }else if(e.data===YT.PlayerState.PAUSED||e.data===YT.PlayerState.BUFFERING){
     if(e.data===YT.PlayerState.PAUSED)playing=false;
-    syncSilent();
-    paint();
+    syncSilent();paint();
   }
-}
-function syncSilent(){
-  var m=false;
-  try{ m = !!(player && player.isMuted()); }catch(e){}
-  silent=m;
-  btn.classList.toggle('silent',m&&playing);
-  btn.title = (m&&playing) ? 'Playing — touch anywhere for sound' : 'Soundtrack';
 }
 function onError(){
   dead++;
-  if(dead>=TRACKS.length){
-    nameEl.textContent='soundtrack unavailable';
-    btn.disabled=true;btn.style.opacity=.4;return;
-  }
+  if(dead>=TRACKS.length){nameEl.textContent='soundtrack unavailable';return}
   pick(idx+1,playing);
 }
 window.onYouTubeIframeAPIReady=function(){
-  /* autoplay lives in the embed URL, so it is decided at construction time —
-     gating playVideo() afterwards is too late, the video is already rolling. */
-  var off=(store.get()==='off');
+  var off=(pref()==='off');
   player=new YT.Player('yt-host',{
     height:'101',width:'180',videoId:TRACKS[idx].id,
     playerVars:{autoplay:off?0:1,controls:0,disablekb:1,fs:0,iv_load_policy:3,
                 modestbranding:1,playsinline:1,rel:0,
-                /* file:// reports origin "null", which stalls the player */
                 origin:(/^https?:$/.test(location.protocol)?location.origin:undefined)},
     events:{onReady:onReady,onStateChange:onState,onError:onError}
   });
@@ -572,81 +728,21 @@ label();
 })();
 if(window.YT&&window.YT.Player)onReady();
 
-/* ================= hunt: 5 on-page marks ================= */
-var FRAGS=[
- '- .... . / - .... .-. . .- -.. / .... --- .-.. -.. ... / .-- .... . -. / -.-- --- ..- / .--. ..- .-.. .-..',
- 'VEhFIExPT1AgRkVFRFMgT04gQVRURU5USU9O',
- '54484520444f4553204e4f5420484f4c44204954',
- 'QB ABG GEHFG GUR NEPUVIR',
- 'YCREM FO ESREVER EHT SI ECNELIS'
-];
-var got={},n=0;
-var body=document.getElementById('logbody'),
-    cnt=document.getElementById('cnt'),
-    knot=document.getElementById('knot'),
-    reward=document.getElementById('reward'),
-    rewardX=document.getElementById('rewardX'),
-    whisper=document.getElementById('whisper');
-
-function draw(){
-  if(!n){
-    body.innerHTML='<p class="empty">Nothing recovered. The marks above are not decoration.</p>';
-  }else{
-    var h='';
-    for(var i=0;i<FRAGS.length;i++){
-      if(!got[i])continue;
-      h+='<p><span class="c1">'+FRAGS[i]+'</span><span class="tag">node '+
-         (i+1<10?'0':'')+(i+1)+'</span></p>';
-    }
-    if(n===FRAGS.length)h+='<p class="hit">five recovered. four more are not here.</p>';
-    body.innerHTML=h;
-  }
-  cnt.textContent=n+' / 5';
-}
-/* the reward is one-shot per visitor: it opens, drains, and remembers */
-var RKEY='tb-reward';
-function rewardSeen(){try{return localStorage.getItem(RKEY)==='1'}catch(e){return false}}
-function markReward(){try{localStorage.setItem(RKEY,'1')}catch(e){}}
-function take(i){
-  if(got[i])return;
-  got[i]=1;n++;draw();
-  if(n===FRAGS.length&&!rewardSeen()){
-    markReward();
-    setTimeout(function(){
-      reward.classList.add('open');
-      rewardX.focus();
-      setTimeout(function(){
-        reward.classList.remove('open');
-        knot.focus();
-      },6000);              /* never traps the page again */
-    },420);
-  }
-}
-Array.prototype.forEach.call(document.querySelectorAll('.mark'),function(b){
-  b.addEventListener('click',function(){take(+b.dataset.f)});
-});
-/* three quick taps on the logo is a second entrance to the fifth */
-var kc=0,kt=null;
-knot.addEventListener('click',function(){
-  kc++;clearTimeout(kt);
-  kt=setTimeout(function(){if(kc>=3){kc=0;take(4)}},700);
-});
-draw();
-
 /* ================= whisper ================= */
 var W=['...the loom is counting',
        'five marks. three taps on the knot.',
        'the counter is a door, not a score',
        'view-source. then read the comments.',
-       'nine nodes. the page only shows five.'];
+       'nine nodes. the page only shows five.',
+       'a line a day comes from the manuscripts'];
 var wi=0;
 setInterval(function(){
   wi=(wi+1)%W.length;
   whisper.style.opacity='0';
-  setTimeout(function(){whisper.textContent=W[wi];whisper.style.opacity='.1'},380);
+  setTimeout(function(){whisper.textContent=W[wi];whisper.style.opacity='.13'},380);
 },9500);
 
-/* ================= help ================= */
+/* ================= keyboard ================= */
 var scrim=document.getElementById('scrim'),
     helpBtn=document.getElementById('helpBtn'),
     scrimX=document.getElementById('scrimX');
@@ -657,16 +753,25 @@ scrimX.addEventListener('click',closeScrim);
 scrim.addEventListener('click',function(e){if(e.target===scrim)closeScrim()});
 rewardX.addEventListener('click',function(){reward.classList.remove('open');knot.focus()});
 
-/* konami, for the people who already know */
 var K='arrowuparrowuparrowdownarrowdownarrowleftarrowrightarrowleftarrowarrowarrowarrowa',buf='';
 document.addEventListener('keydown',function(e){
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  var tag=(e.target.tagName||'').toLowerCase();
   if(e.key==='Escape'){
     if(reward.classList.contains('open')){reward.classList.remove('open');knot.focus();return}
     if(scrim.classList.contains('open'))closeScrim();
     return;
   }
-  if(e.key.toLowerCase()==='h'&&!scrim.classList.contains('open')){openScrim();return}
-  buf=(buf+e.key.toLowerCase()).slice(-K.length);
+  if(scrim.classList.contains('open'))return;
+  var k=e.key.toLowerCase();
+  if(k==='?'||k==='h'){openScrim();return}
+  if(tag==='input'||tag==='textarea')return;
+  if(k>='1'&&k<='5'){take(+k-1);return}
+  if(k==='n'){qAnother.click();return}
+  if(k==='c'){qCopy.click();return}
+  if(k==='s'){qShare.click();return}
+  if(k==='m'){btn.click();return}
+  buf=(buf+k).slice(-K.length);
   if(buf===K){buf='';FRAGS.forEach(function(_,i){take(i)})}
 });
 
