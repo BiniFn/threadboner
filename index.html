@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Threadboner — 31.12.26</title>
-<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day from the manuscripts."/>
+<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day, and a second reading hidden in it."/>
 <meta name="theme-color" content="#08080a"/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308080a'/%3E%3Cpath d='M16 7c-4.5 0-8 4-8 9s3.5 9 8 9 8-4 8-9-3.5-9-8-9z' fill='none' stroke='%23d92d2d' stroke-width='2'/%3E%3Cpath d='M16 16v9' stroke='%23e7e2d9' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%23d92d2d'/%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308080a'/%3E%3Cpath d='M22 56c0-13 14-14 14-24S22 16 22 16' fill='none' stroke='%23e7e2d9' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M22 11c-2-3-4-4-6-4' fill='none' stroke='%23d92d2d' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E"/>
 
 <!--
   ============================================================
@@ -72,15 +72,20 @@ body{
   color:#fff;padding:.6rem 1rem;font-size:.7rem;letter-spacing:.1em}
 .skip:focus{left:.5rem;top:.5rem}
 
-/* ---------- wordmark ---------- */
-.knot{display:block;width:112px;height:112px;margin:0 auto 1.4rem;cursor:pointer;
+/* ---------- wordmark ----------
+   The mark is one thread and the piece severed from it. It was redrawn after
+   the previous version proved to be five elements plus two text labels that
+   turned to grey specks below 40px — a mark has to survive the favicon.
+   Four earlier candidates were rejected for reading as a loading ring, a
+   magnifying glass, a prohibition sign and a letterform instead. */
+.knot{display:block;width:104px;height:104px;margin:0 auto 1.5rem;cursor:pointer;
   background:none;border:0;padding:0;position:relative}
 .knot svg{width:100%;height:100%;overflow:visible}
-.knot-r{fill:none;stroke:var(--red);stroke-width:1.4;stroke-dasharray:6 7;opacity:.75}
-.knot-s{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round;opacity:.9}
-.knot-n{fill:var(--red)}
-.knot-t{font-family:var(--serif);fill:var(--faint);text-anchor:middle;font-size:5.5px;letter-spacing:.5px}
-.knot:hover .knot-s{stroke:var(--red)}
+.mark-s,.mark-c{fill:none;stroke-linecap:round;stroke-width:9}
+.mark-s{stroke:var(--ink)}
+.mark-c{stroke:var(--red);transition:transform .25s ease;transform-origin:64px 5px}
+.knot:hover .mark-s{stroke:var(--red)}
+.knot:hover .mark-c{transform:translate(-2px,-2px)}
 .knot:focus-visible{outline:2px solid var(--red);outline-offset:6px;border-radius:50%}
 .knot-nudge{position:absolute;bottom:-1.15rem;left:50%;transform:translateX(-50%);
   font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
@@ -119,10 +124,17 @@ h1{font-family:var(--serif);font-weight:700;color:var(--ink);
 .quote-count{font-size:.55rem;letter-spacing:.14em;color:var(--faint);font-variant-numeric:tabular-nums}
 .quote-body{font-size:clamp(.92rem,2.6vw,1.06rem);line-height:1.72;color:var(--ink);
   letter-spacing:.005em}
-.quote-body em{font-style:italic;color:#fff}
 .quote-src{margin-top:.9rem;font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
   color:var(--faint)}
 .quote-src span{color:var(--dim)}
+/* the concealed second meaning, shown raw: the reader works out the cipher */
+.cryptic{margin-top:1rem;padding:.7rem .8rem;border:1px dashed var(--line);border-radius:3px;
+  background:#0a0a0c}
+.cryptic .k{display:block;font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--red);margin-bottom:.4rem}
+.cryptic .v{font-family:var(--mono);font-size:.72rem;color:var(--dim);word-break:break-all;
+  letter-spacing:.04em;user-select:all}
+.cryptic.none{display:none}
 .quote-acts{display:flex;gap:.4rem;margin-top:1.1rem;flex-wrap:wrap}
 .qbtn{font:inherit;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;
   background:none;border:1px solid var(--rule);color:var(--dim);cursor:pointer;
@@ -230,9 +242,14 @@ h1{font-family:var(--serif);font-weight:700;color:var(--ink);
 .x:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .x svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
 
+/* The reward must never swallow the page. It is an announcement, not a modal:
+   the whole layer is click-through so copy / another-line / the marks all keep
+   working while it is on screen, and only the close control takes pointer
+   events. It also no longer steals focus on open. */
 .reward{position:fixed;inset:0;z-index:700;display:grid;place-items:center;padding:1.5rem;
   background:#08080a;opacity:0;pointer-events:none;transition:opacity .3s}
-.reward.open{opacity:1;pointer-events:auto}
+.reward.open{opacity:1;pointer-events:none}
+.reward .x{pointer-events:auto}
 .reward-in{text-align:center;max-width:34ch}
 .reward .k{font-size:.55rem;letter-spacing:.3em;text-transform:uppercase;
   color:var(--red);margin-bottom:.9rem}
@@ -268,16 +285,10 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
             pointer-events:none;z-index:1;transform:translateY(-150px)"></div>
 
 <main class="wrap">
-  <button class="knot" id="knot" aria-label="The knot">
-    <svg viewBox="0 0 120 120" aria-hidden="true">
-      <circle class="knot-r" cx="60" cy="60" r="52"/>
-      <path class="knot-s" d="M42 60c0-9 8-16 18-16s18 7 18 16-8 16-18 16-18-7-18-16z"/>
-      <path class="knot-s" d="M60 44V22"/>
-      <path class="knot-s" d="M60 76v14c0 4-3 7-7 7h-6"/>
-      <path class="knot-s" d="M82 84l14 14" opacity=".5"/>
-      <circle class="knot-n" cx="60" cy="60" r="4.5"/>
-      <text class="knot-t" x="60" y="13">THREAD</text>
-      <text class="knot-t" x="60" y="112">SEVERED</text>
+  <button class="knot" id="knot" aria-label="The mark. A thread, and the piece that came off it.">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <path class="mark-s" d="M20 58c0-14 15-15 15-26S20 14 20 14"/>
+      <path class="mark-c" d="M20 9c-2-3-4-4-6-4"/>
     </svg>
     <span class="knot-nudge">it holds if you look</span>
   </button>
@@ -306,13 +317,17 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
       <span class="quote-error">Loading the archive…</span>
     </blockquote>
     <p class="quote-src" id="quoteSrc"></p>
+    <div class="cryptic none" id="quoteCryptic">
+      <span class="k">Second reading — one cipher, not named</span>
+      <span class="v" id="crypticVal"></span>
+    </div>
     <div class="quote-acts">
       <button class="qbtn" id="qCopy">Copy</button>
       <button class="qbtn" id="qAnother">Another line</button>
       <button class="qbtn" id="qShare">Share</button>
       <a class="qbtn" id="qApi" href="/api/quote" target="_blank" rel="noopener">Feed</a>
     </div>
-    <p class="quote-note" id="quoteNote">Drawn from the Threadborn manuscripts.</p>
+    <p class="quote-note" id="quoteNote">Original teaser copy. Not from the book.</p>
   </section>
 
   <div class="marks" id="marks" role="group" aria-label="Five marks, five fragments.">
@@ -381,6 +396,8 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
        one uses. Six are in play.</p>
     <p><b>Stage two.</b> Four more nodes exist only outside the page, in the markup and
        the comments. Open <b>view-source</b>. Your progress is saved on this device.</p>
+    <p><b>Also.</b> The line of the day carries a concealed second meaning. The panel
+       under it gives you the ciphertext and never names the cipher. Five are in play.</p>
     <p><b>Stage three.</b> The last one is planted three separate ways. Find two and check
        they agree.</p>
   </div>
@@ -437,11 +454,11 @@ try{
    dataset. If the API is unreachable — GitHub Pages has no function,
    and a cold Vercel instance can hiccup — the page still answers. */
 var FALLBACK=[
-  {id:'q001',text:'A Thread is a bond made visible.',source:'Codex',tag:'thread'},
-  {id:'q002',text:'Because being vast and alone is not the same as being strong.',source:'Codex',tag:'worth'},
-  {id:'q003',text:'Something witnessed is not the same as something remembered alone.',source:'Codex',tag:'memory'},
-  {id:'q004',text:'The easy answer was yes. The heroic answer was never.',source:'Vol 1 · Ch 2',tag:'choice'},
-  {id:'q005',text:'He had been the most powerful thing in every room he occupied and the most alone, and eventually those two facts had become the same fact.',source:'Vol 1 · Ch 3',tag:'power'}
+  {id:'l001',text:'The thread does not care who pulled it. Only that it was pulled, and who is owed for it.',source:'Threadboner',tag:'thread',cryptic:'pbhag gur xabgf'},
+  {id:'l005',text:'Bridges are the cheapest way to meet a god. The crossing is free.',source:'Threadboner',tag:'death',cryptic:'-... .-. .. -.. --. .'},
+  {id:'l009',text:'There is a version of this where you come home. It is not the version we are in.',source:'Threadboner',tag:'time',cryptic:'d3Jvbmcgc2lkZQ=='},
+  {id:'l013',text:'A seam is only a place where two things agreed to stop arguing.',source:'Threadboner',tag:'promise',cryptic:'c2VhbQ=='},
+  {id:'l061',text:'The door was already open. That was the problem.',source:'Threadboner',tag:'door',cryptic:'--- .-- . -. ---'}
 ];
 var API='/api/quote';
 var qBody=document.getElementById('quoteBody'),
@@ -465,13 +482,21 @@ function renderQuote(q,note){
   qState.quote=q;
   qBody.textContent=q.text;
   qSrc.innerHTML='— <span>'+q.source+'</span> · #'+q.id;
+  /* the concealed second meaning. The cipher is never named. */
+  var box=document.getElementById('quoteCryptic');
+  if(q.cryptic){
+    document.getElementById('crypticVal').textContent=q.cryptic;
+    box.classList.remove('none');
+  }else{
+    box.classList.add('none');
+  }
   if(note)qNote.textContent=note;
   qCount.textContent=(qState.offset+1)+' of today';
 }
 function flash(msg){
   qNote.textContent=msg;
   setTimeout(function(){
-    qNote.textContent='Drawn from the Threadborn manuscripts.';
+    qNote.textContent='Original teaser copy. Not from the book.';
   },1800);
 }
 function copyText(txt){
@@ -588,8 +613,9 @@ function take(i){
     store.set(RK,1);
     setTimeout(function(){
       reward.classList.add('open');
-      rewardX.focus();
-      setTimeout(function(){reward.classList.remove('open');knot.focus()},6000);
+      /* no focus() steal — the overlay is click-through and must not pull the
+         keyboard away from whatever the visitor was actually doing */
+      setTimeout(function(){reward.classList.remove('open')},6000);
     },420);
   }
 }
@@ -734,7 +760,7 @@ var W=['...the loom is counting',
        'the counter is a door, not a score',
        'view-source. then read the comments.',
        'nine nodes. the page only shows five.',
-       'a line a day comes from the manuscripts'];
+       'every line carries a second reading'];
 var wi=0;
 setInterval(function(){
   wi=(wi+1)%W.length;
