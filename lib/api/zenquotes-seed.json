@@ -1,0 +1,207 @@
+{
+ "_note": "Seed batch for GET /api/quote/daily, fetched from https://zenquotes.io/api/quotes. Committed so the request path needs no network call and no ZenQuotes rate-limit budget. Refresh by replacing this file.",
+ "attribution": "https://zenquotes.io/",
+ "fetched": "2026-10-03",
+ "quotes": [
+  {
+   "text": "How people treat you is their karma; how you react is yours.",
+   "author": "Wayne Dyer"
+  },
+  {
+   "text": "If you're afraid - don't do it, - if you're doing it - don't be afraid!",
+   "author": "Genghis Khan"
+  },
+  {
+   "text": "The big secret in life is that there is no big secret. Whatever your goal, you can get there if you're willing to work.",
+   "author": "Oprah Winfrey"
+  },
+  {
+   "text": "The grass is greener where you water it.",
+   "author": "Neil Barringham"
+  },
+  {
+   "text": "The traveler sees what he sees. The tourist sees what he has come to see.",
+   "author": "Gilbert Chesterton"
+  },
+  {
+   "text": "If you can't feed a hundred people, then feed just one.",
+   "author": "Mother Teresa"
+  },
+  {
+   "text": "Faults are yours to fix, not to curse.",
+   "author": "Colin Powell"
+  },
+  {
+   "text": "Mind is the creator of everything. You should therefore guide it to create only good.",
+   "author": "Paramahansa Yogananda"
+  },
+  {
+   "text": "The difference between treason and patriotism is only a matter of dates.",
+   "author": "Alexandre Dumas"
+  },
+  {
+   "text": "Sometimes it is harder to deprive oneself of a pain than of a pleasure.",
+   "author": "F. Scott Fitzgerald"
+  },
+  {
+   "text": "It's not what we do once in a while that shapes our lives, but what we do consistently.",
+   "author": "Tony Robbins"
+  },
+  {
+   "text": "It is only depth of character that determines the profundity with which we face life.",
+   "author": "Ming-Dao Deng"
+  },
+  {
+   "text": "Only in the agony of parting do we look into the depths of love.",
+   "author": "George Eliot"
+  },
+  {
+   "text": "Success comes from knowing that you did your best to become the best that you are capable of becoming.",
+   "author": "John Wooden"
+  },
+  {
+   "text": "The weak can never forgive. Forgiveness is the attribute of the strong.",
+   "author": "Mahatma Gandhi"
+  },
+  {
+   "text": "Keep your eyes on the stars, but remember to keep your feet on the ground.",
+   "author": "Theodore Roosevelt"
+  },
+  {
+   "text": "Although the world is full of suffering, it is also full of the overcoming of it.",
+   "author": "Helen Keller"
+  },
+  {
+   "text": "My sun sets to rise again.",
+   "author": "Robert Browning"
+  },
+  {
+   "text": "Don't criticize what you can't understand.",
+   "author": "Bob Dylan"
+  },
+  {
+   "text": "The art of being wise is knowing what to overlook.",
+   "author": "William James"
+  },
+  {
+   "text": "Rivers know this: there is no hurry. We shall get there some day.",
+   "author": "A.A. Milne"
+  },
+  {
+   "text": "Don't look back - you're not going that way.",
+   "author": "Mary Engelbreit"
+  },
+  {
+   "text": "You can easily judge the character of a man by how he treats those who can do nothing for him.",
+   "author": "Simon Sinek"
+  },
+  {
+   "text": "All men are equal before fish.",
+   "author": "Herbert Hoover"
+  },
+  {
+   "text": "You are the only real obstacle in your path to a fulfilling life.",
+   "author": "Les Brown"
+  },
+  {
+   "text": "Success and failure come and go, but don't let them define you. It's who you are that matters.",
+   "author": "Kamal Ravikant"
+  },
+  {
+   "text": "If you truly expect something to be difficult, it will be.",
+   "author": "Peter A. Cohen"
+  },
+  {
+   "text": "Persistence. Perfection. Patience. Power. Prioritize your passion. It keeps you sane.",
+   "author": "Criss Jami"
+  },
+  {
+   "text": "Some of the greater things in life are unseen; that's why you close your eyes when you kiss, cry, or dream.",
+   "author": "Unknown"
+  },
+  {
+   "text": "Success is going from failure to failure without losing your enthusiasm",
+   "author": "Winston Churchill"
+  },
+  {
+   "text": "Remember, today is the tomorrow you worried about yesterday.",
+   "author": "Dale Carnegie"
+  },
+  {
+   "text": "It is secondary whether we choose belief or defiance. What is precious is that we are always able to choose.",
+   "author": "Ming-Dao Deng"
+  },
+  {
+   "text": "Attitude, not aptitude, determines altitude.",
+   "author": "Zig Ziglar"
+  },
+  {
+   "text": "None but ourselves can free our minds.",
+   "author": "Bob Marley"
+  },
+  {
+   "text": "The universe doesn't give you what you ask for with your thoughts - it gives you what you demand with your actions.",
+   "author": "Steve Maraboli"
+  },
+  {
+   "text": "To arrive at the simplest truth requires years of contemplation.",
+   "author": "Isaac Newton"
+  },
+  {
+   "text": "The future will be shaped by those willing to commit their minds and their bodies to the task.",
+   "author": "Robert F. Kennedy"
+  },
+  {
+   "text": "The person who says something is impossible should not interrupt the person who is doing it.",
+   "author": "Chinese Proverb"
+  },
+  {
+   "text": "Happiness must be grown in one's own garden.",
+   "author": "Mary Engelbreit"
+  },
+  {
+   "text": "Courage is resistance to fear, mastery of fear - not absence of fear.",
+   "author": "Mark Twain"
+  },
+  {
+   "text": "It still holds true that man is most uniquely human when he turns obstacles into opportunities.",
+   "author": "Eric Hoffer"
+  },
+  {
+   "text": "Just as true humor is laughter at oneself, true humanity is knowledge of oneself.",
+   "author": "Alan Watts"
+  },
+  {
+   "text": "A man who cannot tolerate small misfortunes can never accomplish great things.",
+   "author": "Chinese Proverb"
+  },
+  {
+   "text": "Every experience is a lesson. Every loss is a gain.",
+   "author": "Sathya Sai Baba"
+  },
+  {
+   "text": "One day, in retrospect, the years of struggle will strike you as the most beautiful.",
+   "author": "Sigmund Freud"
+  },
+  {
+   "text": "Progress lies not in enhancing what is, but in advancing toward what will be.",
+   "author": "Kahlil Gibran"
+  },
+  {
+   "text": "Confidence is contagious. So is lack of confidence.",
+   "author": "Vince Lombardi"
+  },
+  {
+   "text": "Success in any endeavor depends on the degree to which it is an expression of your true self.",
+   "author": "Ralph Marston"
+  },
+  {
+   "text": "You can, you should, and if you're brave enough to start, you will.",
+   "author": "Stephen King"
+  },
+  {
+   "text": "Why fit in when you were born to stand out?",
+   "author": "Dr. Seuss"
+  }
+ ]
+}
