@@ -3718,6 +3718,109 @@ const quoteRouteHandler = (() => {
 
 exports.handleQuote = quoteRouteHandler;
 
+/*
+ * GET /api/quote/daily — the line of the day, sourced from ZenQuotes.
+ *
+ * Deliberately separate from /api/quote. That route serves the curated
+ * Threadboner pool, and its contract (deterministic date+offset pick, tag
+ * filter, RSS, ETag) is covered by tests and must not start depending on a
+ * third party. This route adds the external feed as a sibling and falls back to
+ * the curated pool whenever ZenQuotes is down or rate-limited.
+ *
+ * Fetched here rather than in the browser because the free ZenQuotes tier sends
+ * no Access-Control-Allow-Origin header. Cached for an hour behind a long
+ * s-maxage, per ZenQuotes' own guidance to "cache a batch of quotes ... and
+ * refresh after an hour or so" — their limit is 5 requests / 30s / IP, so an
+ * uncached per-request call would throttle immediately.
+ */
+const quoteDailyHandler = (() => {
+  const zen = require("../lib/api/zenquotes");
+  const quotes = require("../lib/api/quotes");
+
+  function readInt(v, dflt) {
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) ? n : dflt;
+  }
+
+  function todayUtc() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  async function handleQuoteDaily(req, res) {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      if (allowCors(req, res)) return;
+      return fail(res, 405, "Method not allowed");
+    }
+    if (allowCors(req, res)) return;
+
+    if (!takeRateLimitToken(`quote-daily:${getClientIp(req)}`, 120, 60_000)) {
+      return fail(res, 429, "Too many requests");
+    }
+
+    try {
+      const sp = new URLSearchParams(
+        String((req.url || "").split("?")[1] || "").replace(/^[?&]+/, "")
+      );
+      const requested = sp.get("date");
+      const today = todayUtc();
+      const dateKey = requested ? String(requested) : today;
+      if (dateKey !== today && !quotes.isValidIsoDate(dateKey)) {
+        return fail(res, 400, "Date must be a real YYYY-MM-DD calendar date");
+      }
+      if (dateKey > today) {
+        return fail(res, 400, "That date has not happened yet");
+      }
+
+      const offset = readInt(sp.get("offset"), 0);
+      const external = await zen.getDailyQuotes(dateKey, offset, 1);
+
+      if (external && external.length) {
+        return success(
+          res,
+          {
+            quote: external[0],
+            date: dateKey,
+            offset,
+            source: "zenquotes",
+            attribution: zen.ATTRIBUTION,
+          },
+          200,
+          {
+            "Cache-Control":
+              "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+          }
+        );
+      }
+
+      // External unavailable: serve a curated line so the block is never empty
+      return success(
+        res,
+        {
+          quote: zen.curatedFallback(dateKey, offset),
+          date: dateKey,
+          offset,
+          source: "curated",
+          fallback: true,
+          attribution: null,
+        },
+        200,
+        { "Cache-Control": "public, max-age=300, s-maxage=1800" }
+      );
+    } catch (error) {
+      // last-ditch: never leave the block empty
+      return success(
+        res,
+        { quote: zen.curatedFallback(todayUtc(), 0), date: todayUtc(), source: "curated", fallback: true },
+        200
+      );
+    }
+  }
+
+  return handleQuoteDaily;
+})();
+
+exports.handleQuoteDaily = quoteDailyHandler;
+
 const routeHandlers = new Map([
   ["/api/auth/login", exports.handleLogin],
   ["/api/auth/logout", exports.handleLogout],
@@ -3735,6 +3838,7 @@ const routeHandlers = new Map([
   ["/api/upload/banner", exports.handleAvatar],
   ["/api/user/profile", exports.handleProfile],
   ["/api/quote", quoteRouteHandler],
+  ["/api/quote/daily", quoteDailyHandler],
 ]);
 
 function getApiPath(req) {

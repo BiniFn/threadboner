@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Threadboner — 31.12.26</title>
-<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day, and a second reading hidden in it."/>
+<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day, and a second reading hidden in some of them."/>
 <meta name="theme-color" content="#08080a"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308080a'/%3E%3Cpath d='M22 56c0-13 14-14 14-24S22 16 22 16' fill='none' stroke='%23e7e2d9' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M22 11c-2-3-4-4-6-4' fill='none' stroke='%23d92d2d' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E"/>
 
@@ -332,7 +332,7 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
       <button class="qbtn" id="qShare">Share</button>
       <a class="qbtn" id="qApi" href="/api/quote" target="_blank" rel="noopener">Feed</a>
     </div>
-    <p class="quote-note" id="quoteNote">Original teaser copy. Not from the book.</p>
+    <p class="quote-note" id="quoteNote">A line a day.</p>
   </section>
 
   <div class="marks" id="marks" role="group" aria-label="Five marks, five fragments.">
@@ -399,8 +399,10 @@ footer{margin-top:2.4rem;padding-top:1.2rem;border-top:1px solid var(--rule);
        one uses. Six are in play.</p>
     <p><b>Stage two.</b> Four more nodes exist only outside the page, in the markup and
        the comments. Open <b>view-source</b>. Your progress is saved on this device.</p>
-    <p><b>Also.</b> The line of the day carries a concealed second meaning. The panel
-       under it gives you the ciphertext and never names the cipher. Five are in play.</p>
+    <p><b>Also.</b> Some lines of the day carry a concealed second meaning. The panel
+       under one gives you the ciphertext and never names the cipher. Five are in play.
+       Lines that arrive from elsewhere do not — they had no second reading written
+       for them.</p>
     <p><b>Stage three.</b> The last one is planted three separate ways. Find two and check
        they agree.</p>
   </div>
@@ -463,7 +465,7 @@ var FALLBACK=[
   {id:'l013',text:'A seam is only a place where two things agreed to stop arguing.',source:'Threadboner',tag:'promise',cryptic:'c2VhbQ=='},
   {id:'l061',text:'The door was already open. That was the problem.',source:'Threadboner',tag:'door',cryptic:'--- .-- . -. ---'}
 ];
-var API='/api/quote';
+var API='/api/quote/daily';
 var qBody=document.getElementById('quoteBody'),
     qSrc=document.getElementById('quoteSrc'),
     qCount=document.getElementById('quoteCount'),
@@ -471,7 +473,7 @@ var qBody=document.getElementById('quoteBody'),
     qCopy=document.getElementById('qCopy'),
     qAnother=document.getElementById('qAnother'),
     qShare=document.getElementById('qShare');
-var qState={offset:0,quote:null,busy:false};
+var qState={offset:0,quote:null,busy:false,external:false};
 
 function hash(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0}return Math.abs(h)}
 function todayUTC(){return new Date().toISOString().slice(0,10)}
@@ -483,23 +485,32 @@ function localPick(pool,offset){
 function renderQuote(q,note){
   if(!q){qBody.innerHTML='<span class="quote-error">The archive is quiet.</span>';return}
   qState.quote=q;
+  var external=!!q.external;
+  qState.external=external;
   qBody.textContent=q.text;
-  qSrc.innerHTML='— <span>'+q.source+'</span> · #'+q.id;
+  /* ZenQuotes requires visible attribution back to them on the free tier. */
+  qSrc.innerHTML=external
+    ? '— <span>'+esc(q.author||'Unknown')+'</span> · <a href="https://zenquotes.io/" target="_blank" rel="noopener">via ZenQuotes</a>'
+    : '— <span>Threadboner</span> · #'+q.id;
   /* the concealed second meaning. The cipher is never named. */
   var box=document.getElementById('quoteCryptic');
-  if(q.cryptic){
+  if(q.cryptic && !q.external){
     document.getElementById('crypticVal').textContent=q.cryptic;
     box.classList.remove('none');
   }else{
     box.classList.add('none');
   }
-  if(note)qNote.textContent=note;
+  qNote.textContent = note || (external
+    ? 'From the ZenQuotes collection.'
+    : 'From the Threadboner archive.');
   qCount.textContent=(qState.offset+1)+' of today';
 }
 function flash(msg){
   qNote.textContent=msg;
   setTimeout(function(){
-    qNote.textContent='Original teaser copy. Not from the book.';
+    qNote.textContent=qState.external
+      ? 'From the ZenQuotes collection.'
+      : 'From the Threadboner archive.';
   },1800);
 }
 function copyText(txt){
@@ -518,8 +529,17 @@ function copyText(txt){
     }catch(e){rej(e)}
   });
 }
+function esc(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 function shareText(){
-  return qState.quote ? '"'+qState.quote.text+'" — Threadboner, '+qState.quote.source : '';
+  var q=qState.quote;
+  if(!q)return '';
+  return q.external
+    ? '"'+q.text+'" — '+q.author+', via ZenQuotes'
+    : '"'+q.text+'" — Threadboner';
 }
 function loadQuote(){
   if(qState.busy)return;
@@ -532,7 +552,7 @@ function loadQuote(){
     })
     .catch(function(){
       /* no function here (static host) or it is cold: answer locally */
-      renderQuote(localPick(FALLBACK,qState.offset),'Served from the page — API unreachable.');
+      renderQuote(localPick(FALLBACK,qState.offset),'Offline copy — the feed could not be reached.');
     })
     .then(function(){qState.busy=false});
 }
