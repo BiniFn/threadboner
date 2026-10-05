@@ -19,7 +19,7 @@
     <div class="sigil">Restricted · Archive intake</div>
     <h1>Seal a manuscript</h1>
     <p>Choose a PDF, set its volume number and premiere time, and upload it to private storage. It will appear in the public reader when its premiere time arrives.</p>
-    <form id="upload-form">
+    <form id="upload-form" hidden>
       <label for="title">Reader title</label>
       <input id="title" name="title" type="text" maxlength="160" required>
       <label for="volume-number">Volume number</label>
@@ -30,12 +30,13 @@
       <input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
       <button id="submit" type="submit">Upload to private storage</button>
     </form>
+    <p id="auth-status" role="status" aria-live="polite">Checking your session…</p>
     <p id="status" role="status" aria-live="polite"></p>
-    <section aria-labelledby="scheduled-heading">
+    <section id="scheduled-section" aria-labelledby="scheduled-heading" hidden>
       <h2 id="scheduled-heading" style="font:700 1rem Georgia,serif;margin-top:32px">Scheduled volumes</h2>
       <div id="release-list" class="fine">Sign in to view scheduled uploads.</div>
     </section>
-    <p class="fine">Only signed-in owner/admin accounts can upload. Private files are not exposed through public URLs. Connect a private Vercel Blob store and enable its upload callback key before using this page.</p>
+    <p id="admin-note" class="fine" hidden>Private manuscripts are only available to signed-in readers after their premiere.</p>
     <p class="fine"><a href="/">Return to the archive entrance</a></p>
   </main>
   <script type="module">
@@ -46,6 +47,36 @@
     const button = document.querySelector("#submit");
     const status = document.querySelector("#status");
     const releaseList = document.querySelector("#release-list");
+    const authStatus = document.querySelector("#auth-status");
+    const scheduledSection = document.querySelector("#scheduled-section");
+    const adminNote = document.querySelector("#admin-note");
+
+    function requireAdminSignIn() {
+      const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+      window.location.replace(`/login.html?next=${next}`);
+    }
+
+    async function authorizeAdmin() {
+      const response = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      const user = result.data?.user;
+      if (!response.ok || !result.success || !user) {
+        requireAdminSignIn();
+        return false;
+      }
+      if (user.role !== "owner" && user.role !== "admin") {
+        authStatus.className = "error";
+        authStatus.textContent = "This area is restricted to owner/admin accounts.";
+        form.remove();
+        return false;
+      }
+      localStorage.setItem("threadborn_csrf_token", result.data.csrfToken || "");
+      authStatus.remove();
+      form.hidden = false;
+      scheduledSection.hidden = false;
+      adminNote.hidden = false;
+      return true;
+    }
 
     async function getCsrfToken() {
       const response = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
@@ -113,8 +144,10 @@
       }
     });
 
-    loadReleases().catch((error) => {
-      releaseList.textContent = error?.message || "Sign in with an owner/admin account to view scheduled releases.";
+    authorizeAdmin().then((authorized) => {
+      if (authorized) return loadReleases();
+    }).catch(() => {
+      requireAdminSignIn();
     });
   </script>
 </body>

@@ -123,6 +123,11 @@
     }
 
     function getOAuthReturnPath() {
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get("next") || "";
+      if (requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")) {
+        return requested;
+      }
       return window.location.pathname.includes("-jp") ? "/index-jp.html" : "/index.html";
     }
 
@@ -212,7 +217,7 @@
         }));
         setStatus("Login successful. Redirecting...", "ok");
         window.setTimeout(() => {
-          window.location.href = "./index.html";
+          window.location.href = getOAuthReturnPath();
         }, 700);
       } catch (error) {
         setStatus("Could not reach server. Please try again.", "error");
