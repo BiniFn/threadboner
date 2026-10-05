@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
+const { databasePoolOptions } = require("../lib/api/db-ssl");
 
 async function run() {
   const connectionString = process.env.DATABASE_URL;
@@ -8,7 +9,9 @@ async function run() {
     throw new Error("DATABASE_URL is required");
   }
 
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({
+    ...databasePoolOptions(connectionString),
+  });
   const client = await pool.connect();
   try {
     await client.query(`
