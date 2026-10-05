@@ -556,7 +556,7 @@ return async (req, res) => {
             .replace(/[^a-zA-Z0-9_]/g, "_")
             .slice(0, 24) || "owner";
         const emailConflict = await pool.query(
-          "select role from users where lower(email) = $1 limit 1",
+          "select id, role from users where lower(email) = $1 limit 1",
           [email],
         );
         if (!emailConflict.rows.length) {
@@ -570,12 +570,34 @@ return async (req, res) => {
             ],
           );
         } else if (emailConflict.rows[0].role !== "owner") {
-          fail(
-            res,
-            409,
-            "Owner e-mail is already registered to another account",
+          const submittedPassword = Buffer.from(password);
+          const configuredOwnerPassword = Buffer.from(
+            process.env.OWNER_PASSWORD,
           );
-          return;
+          const isConfiguredOwnerPassword =
+            submittedPassword.length === configuredOwnerPassword.length &&
+            crypto.timingSafeEqual(submittedPassword, configuredOwnerPassword);
+
+          if (
+            emailConflict.rows[0].role !== "user" ||
+            !isConfiguredOwnerPassword
+          ) {
+            fail(res, 401, "Invalid credentials");
+            return;
+          }
+
+          await pool.query(
+            `update users
+             set role = 'owner'::user_role,
+                 password_hash = $2,
+                 verified = true,
+                 updated_at = now()
+             where id = $1 and role = 'user'::user_role`,
+            [
+              emailConflict.rows[0].id,
+              makePasswordHash(process.env.OWNER_PASSWORD),
+            ],
+          );
         }
       }
     }
@@ -779,6 +801,17 @@ return async (req, res) => {
     }
     if (password.length > 1024) {
       fail(res, 400, "Password too long (max 1024 characters)");
+      return;
+    }
+    if (
+      process.env.OWNER_EMAIL &&
+      email === process.env.OWNER_EMAIL.trim().toLowerCase()
+    ) {
+      fail(
+        res,
+        409,
+        "This e-mail is reserved for the owner. Sign in with the configured owner credentials.",
+      );
       return;
     }
 
