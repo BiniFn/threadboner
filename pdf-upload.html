@@ -11,7 +11,7 @@
     main{width:min(100%,680px);border:1px solid var(--line);background:rgba(16,16,18,.94);padding:clamp(24px,6vw,54px);box-shadow:0 24px 90px #0008}
     .sigil{color:var(--red);letter-spacing:.3em;font-size:.7rem;text-transform:uppercase}h1{font:700 clamp(1.7rem,6vw,2.8rem)/1.1 Georgia,serif;letter-spacing:.06em;margin:.75rem 0}p{color:var(--muted);max-width:58ch}label,.note{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
     input[type=file],input[type=text],input[type=number],input[type=datetime-local]{display:block;width:100%;margin:8px 0 18px;padding:12px;border:1px solid #62524a;background:#0b0b0d;color:var(--ink);font:inherit}input[type=file]{border-style:dashed}button{border:1px solid var(--red);background:var(--red);color:white;padding:12px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-    #status{min-height:1.6em;margin:18px 0 8px;color:var(--ink)}.fine{font-size:.74rem;border-top:1px solid var(--line);margin-top:26px;padding-top:18px}a{color:var(--ink)}.error{color:#ff8c82!important}.ok{color:#a7d7ab!important}
+    #status{min-height:1.6em;margin:18px 0 8px;color:var(--ink)}.fine{font-size:.74rem;border-top:1px solid var(--line);margin-top:26px;padding-top:18px}a{color:var(--ink)}.error{color:#ff8c82!important}.ok{color:#a7d7ab!important}.release-item{border-top:1px solid var(--line);padding:14px 0}.release-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.release-title{margin:0;color:var(--ink)}.release-meta{margin:4px 0 0;color:var(--muted);font-size:.72rem}.release-actions{display:flex;gap:8px;flex:none}.release-actions button,.release-form button{padding:7px 10px;font-size:.75rem}.release-actions .delete{background:transparent;border-color:#854040;color:#ffaaa2}.release-form{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-top:16px;padding:14px;border:1px solid var(--line);background:#0b0b0d}.release-form[hidden]{display:none}.release-form label{grid-column:1/-1}.release-form input{margin:5px 0 12px}.release-form .full{grid-column:1/-1}.release-form .replace-label{letter-spacing:normal;text-transform:none;font-size:.75rem}.release-form .replace-label input{display:block;margin:8px 0 14px}
   </style>
 </head>
 <body>
@@ -100,11 +100,87 @@
         return;
       }
       releaseList.replaceChildren(...releases.map((item) => {
-        const row = document.createElement("p");
-        const when = new Date(item.premiere_at).toLocaleString();
-        const state = item.uploaded_at ? "ready" : "upload pending";
-        row.textContent = `Vol. ${item.volume_number} · ${item.title} — ${when} · ${state}`;
-        return row;
+        const entry = document.createElement("article"); entry.className = "release-item";
+        const top = document.createElement("div"); top.className = "release-top";
+        const details = document.createElement("div");
+        const title = document.createElement("strong"); title.className = "release-title"; title.textContent = `Vol. ${item.volume_number} · ${item.title}`;
+        const meta = document.createElement("p"); meta.className = "release-meta";
+        meta.textContent = `${new Date(item.premiere_at).toLocaleString()} · ${item.uploaded_at ? "PDF ready" : "upload pending"}`;
+        details.append(title, meta);
+        const actions = document.createElement("div"); actions.className = "release-actions";
+        const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Edit";
+        const remove = document.createElement("button"); remove.type = "button"; remove.className = "delete"; remove.textContent = "Delete";
+        actions.append(edit, remove); top.append(details, actions);
+
+        const editor = document.createElement("form"); editor.className = "release-form"; editor.hidden = true;
+        const titleInput = document.createElement("input"); titleInput.type = "text"; titleInput.maxLength = 160; titleInput.required = true; titleInput.value = item.title;
+        const volumeInput = document.createElement("input"); volumeInput.type = "number"; volumeInput.min = "1"; volumeInput.max = "9999"; volumeInput.step = "1"; volumeInput.required = true; volumeInput.value = item.volume_number;
+        const dateInput = document.createElement("input"); dateInput.type = "datetime-local"; dateInput.required = true;
+        const localDate = new Date(new Date(item.premiere_at).getTime() - new Date(item.premiere_at).getTimezoneOffset() * 60000);
+        dateInput.value = localDate.toISOString().slice(0, 16);
+        const pdfInput = document.createElement("input"); pdfInput.type = "file"; pdfInput.accept = "application/pdf,.pdf";
+        const addField = (caption, control, full = false) => {
+          const label = document.createElement("label"); label.textContent = caption;
+          if (full) label.className = "full";
+          label.append(control); editor.append(label);
+        };
+        addField("Reader title", titleInput); addField("Volume number", volumeInput);
+        addField("Premiere date and time (your local timezone)", dateInput, true);
+        const replaceLabel = document.createElement("label"); replaceLabel.className = "replace-label full";
+        replaceLabel.append("Replace PDF (optional; leave empty to keep the current file)", pdfInput); editor.append(replaceLabel);
+        const save = document.createElement("button"); save.type = "submit"; save.textContent = "Save changes"; editor.append(save);
+        edit.addEventListener("click", () => { editor.hidden = !editor.hidden; });
+        remove.addEventListener("click", async () => {
+          if (!window.confirm(`Permanently delete Volume ${item.volume_number} · ${item.title} and its stored PDF?`)) return;
+          remove.disabled = true;
+          try {
+            const csrfToken = await getCsrfToken();
+            const deleted = await fetch(`/api/upload/pdf?id=${encodeURIComponent(item.id)}`, {
+              method: "DELETE", credentials: "include", headers: { "X-CSRF-Token": csrfToken },
+            });
+            const payload = await deleted.json().catch(() => ({}));
+            if (!deleted.ok || !payload.success) throw new Error(payload.error || "Could not delete this volume.");
+            status.className = "ok"; status.textContent = `Volume ${item.volume_number} was deleted.`;
+            await loadReleases();
+          } catch (error) {
+            status.className = "error"; status.textContent = error?.message || "Could not delete this volume.";
+            remove.disabled = false;
+          }
+        });
+        editor.addEventListener("submit", async (event) => {
+          event.preventDefault(); save.disabled = true; status.className = "";
+          try {
+            const titleValue = titleInput.value.trim(); const volumeValue = Number(volumeInput.value);
+            const premiereAt = dateInput.value;
+            if (!titleValue || !Number.isInteger(volumeValue) || volumeValue < 1 || volumeValue > 9999 || !premiereAt) throw new Error("Enter a title, valid volume number, and premiere time.");
+            const csrfToken = await getCsrfToken(); const file = pdfInput.files?.[0];
+            if (file) {
+              if (!file.name.toLowerCase().endsWith(".pdf") || file.type !== "application/pdf") throw new Error("Select a valid PDF file.");
+              if (file.size > 100 * 1024 * 1024) throw new Error("PDFs must be 100 MB or smaller.");
+              const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+              if (new TextDecoder().decode(signature) !== "%PDF-") throw new Error("The selected file does not have a PDF signature.");
+              status.textContent = "Uploading the replacement PDF…";
+              await uploadPresigned(`threadborn-archive/${crypto.randomUUID()}.pdf`, file, {
+                access: "private", contentType: "application/pdf", handleUploadUrl: "/api/upload/pdf",
+                clientPayload: JSON.stringify({ csrfToken, action: "replace", releaseId: item.id, title: titleValue, volumeNumber: volumeValue, premiereAt: new Date(premiereAt).toISOString() }),
+              });
+            } else {
+              status.textContent = "Saving volume details…";
+              const updated = await fetch(`/api/upload/pdf?id=${encodeURIComponent(item.id)}`, {
+                method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+                body: JSON.stringify({ title: titleValue, volumeNumber: volumeValue, premiereAt: new Date(premiereAt).toISOString() }),
+              });
+              const payload = await updated.json().catch(() => ({}));
+              if (!updated.ok || !payload.success) throw new Error(payload.error || "Could not update this volume.");
+            }
+            status.className = "ok"; status.textContent = file ? "Volume details and PDF updated." : "Volume details updated.";
+            await loadReleases();
+          } catch (error) {
+            status.className = "error"; status.textContent = error?.message || "Could not update this volume.";
+            save.disabled = false;
+          }
+        });
+        entry.append(top, editor); return entry;
       }));
     }
 

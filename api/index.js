@@ -3933,6 +3933,53 @@ exports.handlePrivatePdfUpload = async (req, res) => {
       );
       return success(res, { releases: rows });
     }
+    if (req.method === "DELETE") {
+      const session = await requireSession(req, res, fail);
+      if (!session) return;
+      if (!isAdminSession(session)) return fail(res, 403, "Only owner/admin can delete volumes");
+      if (!validateCsrf(req, session)) return fail(res, 403, "Invalid CSRF token");
+
+      const id = String(req.query?.id || "").trim();
+      if (!/^[a-f0-9-]{36}$/i.test(id)) return fail(res, 400, "A valid volume ID is required");
+      const { rows } = await pool.query(
+        `select pathname, uploaded_at from private_pdf_releases where id = $1 limit 1`,
+        [id],
+      );
+      if (!rows.length) return fail(res, 404, "Volume not found");
+
+      if (rows[0].uploaded_at) {
+        await del(rows[0].pathname, {
+          access: "private",
+          ...getPrivatePdfBlobAuthOptions(),
+        });
+      }
+      await pool.query("delete from private_pdf_releases where id = $1", [id]);
+      return success(res, { deleted: true });
+    }
+    if (req.method === "PATCH") {
+      const session = await requireSession(req, res, fail);
+      if (!session) return;
+      if (!isAdminSession(session)) return fail(res, 403, "Only owner/admin can edit volumes");
+      if (!validateCsrf(req, session)) return fail(res, 403, "Invalid CSRF token");
+      const id = String(req.query?.id || "").trim();
+      if (!/^[a-f0-9-]{36}$/i.test(id)) return fail(res, 400, "A valid volume ID is required");
+      const body = await parseJsonBody(req);
+      const title = String(body.title || "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 160);
+      const volumeNumber = Number(body.volumeNumber);
+      const premiereAt = new Date(body.premiereAt);
+      if (!title || !Number.isInteger(volumeNumber) || volumeNumber < 1 || volumeNumber > 9999) {
+        return fail(res, 400, "A title and valid volume number are required");
+      }
+      if (Number.isNaN(premiereAt.getTime())) return fail(res, 400, "Choose a valid premiere date and time");
+      const { rows } = await pool.query(
+        `update private_pdf_releases
+         set title = $2, volume_number = $3, premiere_at = $4
+         where id = $1 returning id`,
+        [id, title, volumeNumber, premiereAt.toISOString()],
+      );
+      if (!rows.length) return fail(res, 404, "Volume not found");
+      return success(res, { updated: true });
+    }
     if (req.method !== "POST") return fail(res, 405, "Method not allowed");
 
     const body = await parseJsonBody(req);
@@ -3966,12 +4013,20 @@ exports.handlePrivatePdfUpload = async (req, res) => {
         const volumeNumber = Number(metadata.volumeNumber);
         const premiereAt = new Date(metadata.premiereAt);
         const requestedPath = String(pathname || "");
+        const action = String(metadata.action || "create");
+        const releaseId = String(metadata.releaseId || "").trim();
         if (!title || !Number.isInteger(volumeNumber) || volumeNumber < 1 || volumeNumber > 9999) {
           throw new Error("A title and valid volume number are required");
         }
         if (Number.isNaN(premiereAt.getTime())) throw new Error("Choose a valid premiere date and time");
         if (!/^threadborn-archive\/[a-f0-9-]{36}\.pdf$/i.test(requestedPath)) {
           throw new Error("Only PDF files are accepted");
+        }
+        if (action !== "create" && action !== "replace") throw new Error("Upload action is invalid");
+        if (action === "replace") {
+          if (!/^[a-f0-9-]{36}$/i.test(releaseId)) throw new Error("A valid volume ID is required");
+          const existing = await pool.query("select id from private_pdf_releases where id = $1 limit 1", [releaseId]);
+          if (!existing.rows.length) throw new Error("Volume not found");
         }
 
         const validUntil = Date.now() + 10 * 60 * 1000;
@@ -3983,11 +4038,13 @@ exports.handlePrivatePdfUpload = async (req, res) => {
           maximumSizeInBytes: 100 * 1024 * 1024,
           validUntil,
         });
-        await pool.query(
-          `insert into private_pdf_releases (title, volume_number, pathname, premiere_at, created_by)
-           values ($1, $2, $3, $4, $5)`,
-          [title, volumeNumber, requestedPath, premiereAt.toISOString(), session.user_id],
-        );
+        if (action === "create") {
+          await pool.query(
+            `insert into private_pdf_releases (title, volume_number, pathname, premiere_at, created_by)
+             values ($1, $2, $3, $4, $5)`,
+            [title, volumeNumber, requestedPath, premiereAt.toISOString(), session.user_id],
+          );
+        }
         return {
           token,
           urlOptions: {
@@ -3996,17 +4053,34 @@ exports.handlePrivatePdfUpload = async (req, res) => {
             validUntil,
             addRandomSuffix: false,
             allowOverwrite: false,
+            ...(action === "replace" ? { tokenPayload: JSON.stringify({ action, releaseId, title, volumeNumber, premiereAt: premiereAt.toISOString() }) } : {}),
           },
         };
       },
-      onUploadCompleted: async ({ blob }) => {
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
         if (!blob?.pathname || !/^threadborn-archive\/[a-f0-9-]{36}\.pdf$/i.test(blob.pathname)) {
           throw new Error("Invalid uploaded PDF path");
         }
-        await pool.query(
-          "update private_pdf_releases set uploaded_at = now() where pathname = $1",
-          [blob.pathname],
-        );
+        let completion = null;
+        try { completion = tokenPayload ? JSON.parse(tokenPayload) : null; } catch {}
+        if (completion?.action === "replace" && /^[a-f0-9-]{36}$/i.test(String(completion.releaseId || ""))) {
+          const existing = await pool.query("select pathname from private_pdf_releases where id = $1 limit 1", [completion.releaseId]);
+          if (!existing.rows.length) {
+            await del(blob.pathname, { access: "private", ...getPrivatePdfBlobAuthOptions() });
+            return;
+          }
+          await pool.query(
+            `update private_pdf_releases set pathname = $2, uploaded_at = now(), title = $3,
+             volume_number = $4, premiere_at = $5 where id = $1`,
+            [completion.releaseId, blob.pathname, completion.title, completion.volumeNumber, completion.premiereAt],
+          );
+          if (existing.rows[0].pathname !== blob.pathname) {
+            try { await del(existing.rows[0].pathname, { access: "private", ...getPrivatePdfBlobAuthOptions() }); }
+            catch (error) { console.error("[pdf-upload] replaced blob cleanup failed:", error); }
+          }
+          return;
+        }
+        await pool.query("update private_pdf_releases set uploaded_at = now() where pathname = $1", [blob.pathname]);
       },
     });
 
