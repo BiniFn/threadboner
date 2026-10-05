@@ -207,6 +207,8 @@ a.track[href]:hover{text-decoration-color:var(--accent)}
     <div class="unit"><b id="s">00</b><span>Seconds</span></div>
   </div>
   <p class="zone" id="zone">31 DEC 2026 · 23:59 · <b id="tz">your local time</b></p>
+  <p class="zone" id="release-state" hidden>THE ARCHIVE IS OPEN · <a href="/reader.html" style="color:var(--ink)">Enter the reader</a></p>
+  <button class="qbtn" id="release-preview" type="button" hidden>Preview after countdown</button>
 
   <!-- quote of the day: the substance, and the thing worth sharing -->
   <section class="quote" id="quote" aria-labelledby="quoteLabel">
@@ -268,16 +270,39 @@ var END=new Date(2026,11,31,23,59,59).getTime();
 var dEl=document.getElementById('d'),hEl=document.getElementById('h'),
     mEl=document.getElementById('m'),sEl=document.getElementById('s'),
     tzEl=document.getElementById('tz');
+var releaseState=document.getElementById('release-state'),previewButton=document.getElementById('release-preview');
+var previewMode=false;
 var pad=function(n){return n<10?'0'+n:''+n};
 function tick(){
   var L=END-Date.now();
-  if(L<=0){dEl.textContent=hEl.textContent=mEl.textContent=sEl.textContent='00';return}
+  if(L<=0||previewMode){dEl.textContent=hEl.textContent=mEl.textContent=sEl.textContent='00';releaseState.hidden=false;return}
+  releaseState.hidden=true;
   dEl.textContent=pad(Math.floor(L/864e5));
   hEl.textContent=pad(Math.floor(L%864e5/36e5));
   mEl.textContent=pad(Math.floor(L%36e5/6e4));
   sEl.textContent=pad(Math.floor(L%6e4/1e3));
 }
 tick();setInterval(tick,1000);
+/* Preview is a local visual state and is offered only to authenticated admins. */
+fetch('/api/auth/me',{credentials:'include',cache:'no-store'}).then(function(r){return r.json()}).then(function(result){
+  var user=result&&result.data&&result.data.user;
+  if(!user||(user.role!=='owner'&&user.role!=='admin'))return;
+  previewButton.hidden=false;
+  previewButton.addEventListener('click',function(){
+    previewMode=!previewMode;
+    previewButton.textContent=previewMode?'Exit release preview':'Preview after countdown';
+    tick();
+  });
+}).catch(function(){});
+/* Approximate first-party counts; no IP address or account identifier is sent. */
+function trackSiteEvent(eventType,pagePath,volumeId){
+  try{
+    var visitorId=localStorage.getItem('threadborn_visitor_id');
+    if(!visitorId){visitorId=crypto.randomUUID();localStorage.setItem('threadborn_visitor_id',visitorId)}
+    fetch('/api/site-analytics',{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({visitorId:visitorId,eventType:eventType,pagePath:pagePath,volumeId:volumeId})}).catch(function(){});
+  }catch(e){}
+}
+trackSiteEvent('page_view','/');
 /* show the visitor's own offset, so "23:59" is meaningful to them and not a lie */
 try{
   var off=-new Date().getTimezoneOffset();

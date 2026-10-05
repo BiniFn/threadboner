@@ -1313,6 +1313,88 @@ return async (req, res) => {
 
 })();
 
+exports.handleSiteAnalytics = async (req, res) => {
+  if (allowCors(req, res)) return;
+  if (!takeRateLimitToken(`site-analytics:${getClientIp(req)}`, 60, 60_000)) {
+    return fail(res, 429, "Too many requests");
+  }
+
+  if (req.method === "POST") {
+    let payload;
+    try { payload = await parseJsonBody(req); }
+    catch { return fail(res, 400, "Invalid event"); }
+    const visitorId = String(payload?.visitorId || "");
+    const eventType = String(payload?.eventType || "");
+    const pagePath = String(payload?.pagePath || "");
+    const volumeId = payload?.volumeId == null ? null : String(payload.volumeId);
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(visitorId)) return fail(res, 400, "Invalid visitor identifier");
+    if (!["page_view", "reader_view", "volume_open"].includes(eventType)) return fail(res, 400, "Invalid event type");
+    if (!["/", "/reader.html"].includes(pagePath)) return fail(res, 400, "Invalid page path");
+    if (eventType === "volume_open" && !uuidPattern.test(volumeId || "")) return fail(res, 400, "Invalid volume identifier");
+    if (eventType !== "volume_open" && volumeId) return fail(res, 400, "Unexpected volume identifier");
+    if (!process.env.DATABASE_URL) return fail(res, 503, "Analytics storage is not configured");
+    try {
+      await pool.ensureMigrations();
+      await pool.query(
+        `insert into site_analytics (visitor_id, event_type, page_path, volume_id)
+         values ($1::uuid, $2, $3, $4)`,
+        [visitorId, eventType, pagePath, volumeId],
+      );
+      return success(res, { recorded: true }, 202);
+    } catch (error) {
+      console.error("[site-analytics] event insert failed:", error);
+      return fail(res, 503, "Could not record analytics event");
+    }
+  }
+
+  if (req.method !== "GET") return fail(res, 405, "Method not allowed");
+  const session = await requireSession(req, res, fail);
+  if (!session) return;
+  if (!isAdminSession(session)) return fail(res, 403, "Admin access required");
+  if (!process.env.DATABASE_URL) return fail(res, 503, "Analytics storage is not configured");
+  try {
+    await pool.ensureMigrations();
+    const [totals, daily, topVolumes] = await Promise.all([
+      pool.query(`
+        select
+          count(*) filter (where event_type = 'page_view')::int as page_views_all,
+          count(distinct visitor_id) filter (where event_type = 'page_view')::int as visitors_all,
+          count(*) filter (where event_type = 'page_view' and created_at >= date_trunc('day', now()))::int as page_views_today,
+          count(distinct visitor_id) filter (where event_type = 'page_view' and created_at >= date_trunc('day', now()))::int as visitors_today,
+          count(*) filter (where event_type = 'page_view' and created_at >= now() - interval '7 days')::int as page_views_7d,
+          count(distinct visitor_id) filter (where event_type = 'page_view' and created_at >= now() - interval '7 days')::int as visitors_7d,
+          count(distinct visitor_id) filter (where event_type = 'page_view' and created_at >= now() - interval '30 days')::int as visitors_30d,
+          count(distinct visitor_id) filter (where event_type = 'reader_view' and created_at >= now() - interval '7 days')::int as readers_7d,
+          count(*) filter (where event_type = 'volume_open' and created_at >= now() - interval '7 days')::int as volume_opens_7d
+        from site_analytics`),
+      pool.query(`
+        select to_char(day, 'YYYY-MM-DD') as day,
+               count(*) filter (where event_type = 'page_view')::int as page_views,
+               count(distinct visitor_id) filter (where event_type = 'page_view')::int as visitors
+        from generate_series(current_date - interval '13 days', current_date, interval '1 day') as dates(day)
+        left join site_analytics on created_at >= day and created_at < day + interval '1 day'
+        group by day order by day`),
+      pool.query(`
+        select a.volume_id as id, coalesce(r.title, 'Removed volume') as title,
+               r.volume_number as volume_number, count(*)::int as opens,
+               count(distinct a.visitor_id)::int as readers
+        from site_analytics a
+        left join private_pdf_releases r on r.id::text = a.volume_id
+        where a.event_type = 'volume_open' and a.created_at >= now() - interval '30 days'
+        group by a.volume_id, r.title, r.volume_number
+        order by opens desc, readers desc limit 10`),
+    ]);
+    return success(res, {
+      totals: totals.rows[0], daily: daily.rows, topVolumes: topVolumes.rows,
+      generatedAt: new Date().toISOString(),
+    }, 200, { "Cache-Control": "no-store" });
+  } catch (error) {
+    console.error("[site-analytics] admin summary failed:", error);
+    return fail(res, 503, "Could not load site analytics");
+  }
+};
+
 exports.handleBookmarks = (() => {
 
 return async (req, res) => {
@@ -4203,6 +4285,7 @@ const routeHandlers = new Map([
   ["/api/auth/google/callback", exports.handleGoogleAuthCallback],
   ["/api/dashboard", exports.handleDashboard],
   ["/api/reader/analytics", exports.handleAnalytics],
+  ["/api/site-analytics", exports.handleSiteAnalytics],
   ["/api/reader/bookmarks", exports.handleBookmarks],
   ["/api/reader/community", exports.handleCommunity],
   ["/api/reader/progress", exports.handleProgress],

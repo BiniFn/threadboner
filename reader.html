@@ -49,6 +49,21 @@
     const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
     const status = (message) => { $("#reader-status").textContent = message; };
     const savedPageKey = (id) => `threadborn-reader-page:${id}`;
+    function trackSiteEvent(eventType, volumeId) {
+      try {
+        let visitorId = localStorage.getItem("threadborn_visitor_id");
+        if (!visitorId) {
+          visitorId = crypto.randomUUID();
+          localStorage.setItem("threadborn_visitor_id", visitorId);
+        }
+        fetch("/api/site-analytics", {
+          method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+          body: JSON.stringify({ visitorId, eventType, pagePath: "/reader.html", ...(volumeId ? { volumeId } : {}) }),
+        }).catch(() => {});
+      } catch {}
+    }
+    trackSiteEvent("page_view");
+    trackSiteEvent("reader_view");
 
     function drawVolumes() {
       const query = filter.value.trim().toLowerCase();
@@ -110,6 +125,7 @@
         await buildPageSlots();
         state.page = Math.min(Math.max(state.page, 1), state.pdf.numPages); $("#page-number").value = state.page;
         scrollToPage(state.page, false); renderVisiblePages(); status(`${state.pdf.numPages} pages`);
+        trackSiteEvent("volume_open", item.id);
       } catch (error) {
         const box = document.createElement("div"); box.className = "reader-error";
         const heading = document.createElement("strong"); heading.textContent = "This volume could not be opened.";
