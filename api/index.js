@@ -620,6 +620,17 @@ return async (req, res) => {
     fail(res, 429, "Too many requests");
     return;
   }
+  let session;
+  try {
+    session = await getSession(req);
+  } catch (error) {
+    fail(res, 503, "Could not verify the current session");
+    return;
+  }
+  if (session && !validateCsrf(req, session)) {
+    fail(res, 403, "Invalid CSRF token");
+    return;
+  }
   // Clear cookie immediately — do this before the DB call so the user
   // is always logged out in the browser even if the DB is unavailable
   res.setHeader(
@@ -2784,6 +2795,7 @@ return async (req, res) => {
     if (req.method !== "POST") return fail(res, 405, "Method not allowed");
     const session = await requireSession(req, res, fail);
     if (!session) return;
+    if (!validateCsrf(req, session)) return fail(res, 403, "Invalid CSRF token");
     if (!process.env.DATABASE_URL)
       return fail(res, 503, "Missing DATABASE_URL");
     try {
@@ -2809,6 +2821,7 @@ return async (req, res) => {
     if (req.method !== "POST") return fail(res, 405, "Method not allowed");
     const session = await requireSession(req, res, fail);
     if (!session) return;
+    if (!validateCsrf(req, session)) return fail(res, 403, "Invalid CSRF token");
     if (!process.env.DATABASE_URL)
       return fail(res, 503, "Missing DATABASE_URL");
     try {
@@ -3858,11 +3871,20 @@ const quoteDailyHandler = (() => {
 
 exports.handleQuoteDaily = quoteDailyHandler;
 
+function getPrivatePdfBlobAuthOptions() {
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
+  const storeId = process.env.PRIVATE_BLOB_STORE_ID?.trim();
+  if (oidcToken && storeId) return { oidcToken, storeId };
+
+  const token = process.env.PRIVATE_BLOB_READ_WRITE_TOKEN?.trim();
+  return token ? { token } : null;
+}
+
 exports.handlePrivatePdfUpload = async (req, res) => {
   if (allowCors(req, res)) return;
 
   try {
-    if (!process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) {
+    if (!getPrivatePdfBlobAuthOptions()) {
       return fail(res, 503, "Private PDF storage is not configured");
     }
     await pool.ensureMigrations();
@@ -3916,7 +3938,7 @@ exports.handlePrivatePdfUpload = async (req, res) => {
 
         const validUntil = Date.now() + 10 * 60 * 1000;
         const token = await issueSignedToken({
-          token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
+          ...getPrivatePdfBlobAuthOptions(),
           pathname: requestedPath,
           operations: ["put"],
           allowedContentTypes: ["application/pdf"],
@@ -3967,6 +3989,7 @@ exports.handlePublicPdfReleases = async (req, res) => {
   if (allowCors(req, res)) return;
   if (req.method !== "GET") return fail(res, 405, "Method not allowed");
   if (!process.env.DATABASE_URL) return fail(res, 503, "PDF archive is unavailable");
+  if (!getPrivatePdfBlobAuthOptions()) return fail(res, 503, "PDF archive storage is not configured");
   try {
     await pool.ensureMigrations();
     const id = String(req.query?.id || "").trim();
@@ -3982,7 +4005,7 @@ exports.handlePublicPdfReleases = async (req, res) => {
       const item = rows[0];
       const validUntil = Date.now() + 60 * 60 * 1000;
       const token = await issueSignedToken({
-        token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
+        ...getPrivatePdfBlobAuthOptions(),
         pathname: item.pathname,
         operations: ["get"],
         validUntil,
