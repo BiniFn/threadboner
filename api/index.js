@@ -3957,7 +3957,10 @@ exports.handlePrivatePdfUpload = async (req, res) => {
           throw new Error("Invalid CSRF token");
         }
 
-        const title = cleanText(metadata.title, 160);
+        const title = String(metadata.title || "")
+          .replace(/[\u0000-\u001f\u007f]/g, "")
+          .trim()
+          .slice(0, 160);
         const volumeNumber = Number(metadata.volumeNumber);
         const premiereAt = new Date(metadata.premiereAt);
         const requestedPath = String(pathname || "");
