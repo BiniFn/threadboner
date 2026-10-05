@@ -3862,6 +3862,9 @@ exports.handlePrivatePdfUpload = async (req, res) => {
   if (allowCors(req, res)) return;
 
   try {
+    if (!process.env.PRIVATE_BLOB_READ_WRITE_TOKEN) {
+      return fail(res, 503, "Private PDF storage is not configured");
+    }
     await pool.ensureMigrations();
     if (req.method === "GET") {
       const session = await requireSession(req, res, fail);
@@ -3879,6 +3882,7 @@ exports.handlePrivatePdfUpload = async (req, res) => {
     const uploadResponse = await handleUploadPresigned({
       body,
       request: req,
+      webhookPublicKey: process.env.PRIVATE_BLOB_WEBHOOK_PUBLIC_KEY,
       getSignedToken: async (pathname, clientPayload) => {
         const session = await requireSession(req, res, fail);
         if (!session) throw new Error("Unauthorized");
@@ -3912,6 +3916,7 @@ exports.handlePrivatePdfUpload = async (req, res) => {
 
         const validUntil = Date.now() + 10 * 60 * 1000;
         const token = await issueSignedToken({
+          token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
           pathname: requestedPath,
           operations: ["put"],
           allowedContentTypes: ["application/pdf"],
@@ -3977,6 +3982,7 @@ exports.handlePublicPdfReleases = async (req, res) => {
       const item = rows[0];
       const validUntil = Date.now() + 60 * 60 * 1000;
       const token = await issueSignedToken({
+        token: process.env.PRIVATE_BLOB_READ_WRITE_TOKEN,
         pathname: item.pathname,
         operations: ["get"],
         validUntil,
