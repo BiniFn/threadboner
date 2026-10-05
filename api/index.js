@@ -1,7 +1,9 @@
 const crypto = require("crypto");
-const { put, del } = require("@vercel/blob");
-const { issueSignedToken, presignUrl } = require("@vercel/blob");
+const { put, del, get } = require("@vercel/blob");
+const { issueSignedToken } = require("@vercel/blob");
 const { handleUploadPresigned } = require("@vercel/blob/client");
+const { Readable } = require("node:stream");
+const { pipeline } = require("node:stream/promises");
 const pool = require("../lib/api/db");
 const { allowCors, success, fail } = require("../lib/api/http");
 const { parseJsonBody, getClientIp } = require("../lib/api/request");
@@ -4029,6 +4031,48 @@ exports.handlePublicPdfReleases = async (req, res) => {
   try {
     await pool.ensureMigrations();
     const id = String(req.query?.id || "").trim();
+    if (id && req.query?.content === "1") {
+      const { rows } = await pool.query(
+        `select pathname, volume_number
+         from private_pdf_releases
+         where id = $1 and uploaded_at is not null and premiere_at <= now()
+         limit 1`,
+        [id],
+      );
+      if (!rows.length) return fail(res, 404, "This volume has not premiered");
+
+      const requestedRange = String(req.headers.range || "");
+      const blob = await get(rows[0].pathname, {
+        access: "private",
+        ...getPrivatePdfBlobAuthOptions(),
+        ifNoneMatch: req.headers["if-none-match"],
+        headers: /^bytes=\d*-\d*(,\d*-\d*)*$/.test(requestedRange)
+          ? { Range: requestedRange }
+          : undefined,
+      });
+      if (!blob) return fail(res, 404, "This volume is unavailable");
+      res.setHeader("Cache-Control", "private, no-cache");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("ETag", blob.blob.etag);
+      res.setHeader("Accept-Ranges", "bytes");
+      if (blob.statusCode === 304) {
+        res.statusCode = 304;
+        res.end();
+        return;
+      }
+
+      const contentRange = blob.headers.get("content-range");
+      res.statusCode = contentRange ? 206 : 200;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Length", String(blob.blob.size));
+      if (contentRange) res.setHeader("Content-Range", contentRange);
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="threadborn-volume-${rows[0].volume_number}.pdf"`,
+      );
+      await pipeline(Readable.fromWeb(blob.stream), res);
+      return;
+    }
     if (id) {
       const { rows } = await pool.query(
         `select id, title, volume_number, pathname, premiere_at
@@ -4039,26 +4083,13 @@ exports.handlePublicPdfReleases = async (req, res) => {
       );
       if (!rows.length) return fail(res, 404, "This volume has not premiered");
       const item = rows[0];
-      const validUntil = Date.now() + 60 * 60 * 1000;
-      const token = await issueSignedToken({
-        ...getPrivatePdfBlobAuthOptions(),
-        pathname: item.pathname,
-        operations: ["get"],
-        validUntil,
-      });
-      const { presignedUrl } = await presignUrl(token, {
-        pathname: item.pathname,
-        operation: "get",
-        access: "private",
-        validUntil,
-      });
       return success(res, {
         volume: {
           id: item.id,
           title: item.title,
           volumeNumber: item.volume_number,
           premiereAt: item.premiere_at,
-          url: presignedUrl,
+          url: `/api/reader/volumes?id=${encodeURIComponent(item.id)}&content=1`,
         },
       }, 200, { "Cache-Control": "no-store" });
     }
@@ -4080,7 +4111,12 @@ exports.handlePublicPdfReleases = async (req, res) => {
       })),
     }, 200, { "Cache-Control": "no-store" });
   } catch (error) {
-    fail(res, 500, "Could not load the release archive");
+    if (!res.headersSent && !res.writableEnded) {
+      console.error("[pdf-reader] release request failed:", error);
+      fail(res, 500, "Could not load the release archive");
+    } else if (!res.writableEnded) {
+      res.destroy(error);
+    }
   }
 };
 
