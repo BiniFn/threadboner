@@ -31,15 +31,15 @@ type Beat = {
 };
 
 const beats: Beat[] = [
-  {at: 1, duration: 4.8, eyebrow: 'A light novel trailer', title: 'THREADBORN', subtitle: 'Starting Life Beyond the Covenant Door', tone: 'gold'},
+  {at: 1, duration: 4.8, eyebrow: 'The archive', title: 'THREADBONER', subtitle: 'Some records remain sealed.', tone: 'gold'},
   {at: 6.2, duration: 4.6, eyebrow: 'Every bond', title: 'leaves a Thread.', subtitle: 'Fate. Memory. Emotion. Reality.', tone: 'blue'},
   {at: 11.4, duration: 4.4, eyebrow: 'Then came', title: 'The Unraveling.', subtitle: 'The world forgot its own connections.', tone: 'red'},
-  {at: 16.6, duration: 4.8, eyebrow: 'One man', title: 'fell through the gap.', subtitle: 'Yono Kazeshima wakes beyond the Covenant Door.', tone: 'white'},
-  {at: 22.1, duration: 4.7, eyebrow: 'Inside', title: 'The Black Hall.', subtitle: 'Every sealed cord is a version of himself.', tone: 'gold'},
-  {at: 27.5, duration: 4.1, eyebrow: 'When the reason is big enough', title: 'The seals break.', subtitle: 'Time slows. Damage is denied. Rules bend.', tone: 'red'},
-  {at: 33, duration: 4.7, eyebrow: 'Beside him blooms', title: 'Violet Arden.', subtitle: 'Goddess of Flowers. Thirty-eight divine concepts.', tone: 'violet'},
-  {at: 39, duration: 4.5, eyebrow: 'The latest Yono', title: 'is the strongest Yono.', subtitle: 'Last chapter’s ceiling is the new floor.', tone: 'blue'},
-  {at: 44.3, duration: 4.1, eyebrow: 'One more reason', title: 'always one more reason.', subtitle: 'The world breaks first.', tone: 'red'},
+  {at: 16.6, duration: 4.8, eyebrow: 'One name', title: 'waits in the margins.', subtitle: 'The account is not yet complete.', tone: 'white'},
+  {at: 22.1, duration: 4.7, eyebrow: 'A boundary', title: 'holds its breath.', subtitle: 'Something waits on the other side.', tone: 'gold'},
+  {at: 27.5, duration: 4.1, eyebrow: 'Some promises', title: 'do not stay broken.', subtitle: 'The marks remember.', tone: 'red'},
+  {at: 33, duration: 4.7, eyebrow: 'Somewhere nearby', title: 'a witness remains.', subtitle: 'No one has told the whole story.', tone: 'violet'},
+  {at: 39, duration: 4.5, eyebrow: 'The sealed archive', title: 'is still listening.', subtitle: 'Some records are not ready to open.', tone: 'blue'},
+  {at: 44.3, duration: 4.1, eyebrow: 'Follow the thread', title: 'find what remains.', subtitle: 'The archive is incomplete by design.', tone: 'red'},
 ];
 
 const powerWords = [
@@ -253,9 +253,9 @@ const LogoFinale = () => {
   return (
     <Sequence from={49.6 * fps} durationInFrames={8.4 * fps}>
       <div className="finale" style={{opacity: Math.max(0, glow - fade)}}>
-        <div className="finaleTitle">THREADBORN</div>
-        <div className="finaleTag">Volume I · Reborn With Zero Dignity</div>
-        <div className="comingSoon">Coming Soon</div>
+        <div className="finaleTitle">THREADBONER</div>
+        <div className="finaleTag">The archive is incomplete by design.</div>
+        <div className="comingSoon">Follow the thread</div>
       </div>
     </Sequence>
   );
@@ -339,7 +339,7 @@ export const ThreadbornTrailer = () => {
   return (
     <AbsoluteFill className="trailer">
       <Audio
-        src={staticFile('aot_ashes.mp3')}
+        src={staticFile('licensed-trailer-audio.mp3')}
         volume={(audioFrame) =>
           interpolate(audioFrame, [0, 0.9 * fps, 52 * fps, 57.5 * fps], [0, 0.56, 0.56, 0], {
             extrapolateLeft: 'clamp',

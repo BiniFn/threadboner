@@ -1497,116 +1497,8 @@
   // ═══════════════════════════════════════════════════════
   //  LORE CODEX
   // ═══════════════════════════════════════════════════════
-  const CODEX_ENTRIES = [
-    {
-      title: "The Tokyo Bridge",
-      category: "world",
-      text: "Yono dies in modern Japan after Violet accidentally kills him saving a cat, then gets reincarnated into Lumera with absurd starter powers.",
-      icon: "🌉",
-    },
-    {
-      title: "Lumera",
-      category: "world",
-      text: "The world Yono awakens in. Ancient, oath-bound, and full of sealed things that should have stayed sealed. Governed by Threads — invisible bonds between promises, people, and places.",
-      icon: "🌍",
-    },
-    {
-      title: "The Shade Debt",
-      category: "faction",
-      text: "Debt-collection monsters made of shadow and law. They enforce unpaid oaths and compound interest on broken promises. Volume 1's primary antagonist force.",
-      icon: "👤",
-    },
-    {
-      title: "The Warden",
-      category: "seal",
-      text: "A sealed entity bound by the Old Covenant. Feeds on promises that were never kept. It does not kill — it collects.",
-      icon: "🔒",
-    },
-    {
-      title: "The Covenant Door",
-      category: "seal",
-      text: "A boundary between the world and what existed before the world had rules. Currently straining under Velkor's weight from the other side.",
-      icon: "🚪",
-    },
-    {
-      title: "Velkor",
-      category: "character",
-      text: "Former Covenant Elder. Learned to eat life-threads and grow from what he stole. Sealed in the forest prison. Still patient. Still growing.",
-      icon: "💀",
-    },
-    {
-      title: "The Black Hall",
-      category: "power",
-      text: "Yono's sealed inner realm. Not a power — a location. Every version of Yono he has been and locked away lives here as a hanging cord.",
-      icon: "⬛",
-    },
-    {
-      title: "Thread Sight",
-      category: "power",
-      text: "Violet's ability to see the invisible bonds that connect people, places, and promises. Allows her to read alliance, betrayal, and intent before they become words.",
-      icon: "🧵",
-    },
-    {
-      title: "Pre-Definition Authority",
-      category: "power",
-      text: "Before a concept fully becomes real, Yono can reject it, blank it, or allow it. This is why limitations placed on him do not last.",
-      icon: "⚡",
-    },
-    {
-      title: "Oath Law",
-      category: "world",
-      text: "The legal framework underlying all social contracts in Lumera. Broken oaths become physical debt. Honoured oaths can be wielded as tools.",
-      icon: "⚖️",
-    },
-    {
-      title: "The Veil Quarter",
-      category: "world",
-      text: "The part of Lumera where oath-law practitioners, information brokers, and legal entities operate. Lyra's home territory.",
-      icon: "🏙️",
-    },
-    {
-      title: "Amber Aura (Mirika)",
-      category: "power",
-      text: "Mirika's seal-reading ability. Can trace the architecture of ancient oaths and determine what can be legally undone versus what must be brute-forced.",
-      icon: "🔮",
-    },
-    {
-      title: "Warmth Field (Meryn)",
-      category: "power",
-      text: "Meryn's healing presence creates a field of physical and emotional warmth. Can buy the party precious seconds against powers that ignore conventional defense.",
-      icon: "🌡️",
-    },
-    {
-      title: "The Forest Confession",
-      category: "world",
-      text: "The emotional turning point of Volume 1. Yono and Violet become real as a couple in the forest shelter before finding Velkor's door the next morning.",
-      icon: "🌲",
-    },
-    {
-      title: "The Old Covenant",
-      category: "faction",
-      text: "The ancient legal body that sealed Velkor and established the rules Lumera runs on. Long dissolved, but its seals still hold — for now.",
-      icon: "📜",
-    },
-    {
-      title: "Seal Harvest",
-      category: "power",
-      text: "Every seal Yono breaks on himself generates a permanent gain. The ceiling of who he was becomes the floor of who he becomes.",
-      icon: "🔓",
-    },
-    {
-      title: "Narrative Overwrite",
-      category: "power",
-      text: "If a scene traps Yono in a fixed outcome, he can rewrite the terms the scene is operating on. Not just survival — authorship.",
-      icon: "✏️",
-    },
-    {
-      title: "Observer Anchor",
-      category: "power",
-      text: "The single limit that keeps Yono's scale from becoming untethered. If no one is watching, thinking about him, or anchoring him, he goes quiet.",
-      icon: "👁️",
-    },
-  ];
+  // Keep the Codex page as an empty placeholder until public, author-approved
+  // material is released through the manuscript archive.
 
   let codexCategory = "all";
 
@@ -1628,23 +1520,7 @@
   window.filterCodex = function (query) {
     const grid = document.getElementById("codex-grid");
     if (!grid) return;
-    const q = query.trim().toLowerCase();
-    const filtered = CODEX_ENTRIES.filter(
-      (e) =>
-        (codexCategory === "all" || e.category === codexCategory) &&
-        (!q || (e.title + e.text).toLowerCase().includes(q)),
-    );
-    grid.innerHTML =
-      filtered
-        .map(
-          (entry) => `
-      <div class="codex-card" onclick="openCodexDetail(${JSON.stringify(entry).replace(/"/g, "&quot;")})">
-        <div class="codex-card-tag">${entry.category}</div>
-        <h4>${entry.icon} ${escapeHtml(entry.title)}</h4>
-        <p>${escapeHtml(entry.text.slice(0, 120))}…</p>
-      </div>`,
-        )
-        .join("") || `<p style="color:var(--mist)">No entries found.</p>`;
+    grid.innerHTML = `<p style="color:var(--mist)">Nothing recovered yet.</p>`;
   };
 
   window.openCodexDetail = function (entry) {

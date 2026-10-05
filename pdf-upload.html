@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08080a">
+  <title>Sealed archive · Threadboner</title>
+  <style>
+    :root{color-scheme:dark;--bg:#08080a;--panel:#101012;--ink:#e7e2d9;--muted:#aaa396;--red:#d92d2d;--line:#302b26}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0,#211313 0,transparent 42%),var(--bg);color:var(--ink);font:16px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;display:grid;place-items:center;padding:24px}
+    main{width:min(100%,680px);border:1px solid var(--line);background:rgba(16,16,18,.94);padding:clamp(24px,6vw,54px);box-shadow:0 24px 90px #0008}
+    .sigil{color:var(--red);letter-spacing:.3em;font-size:.7rem;text-transform:uppercase}h1{font:700 clamp(1.7rem,6vw,2.8rem)/1.1 Georgia,serif;letter-spacing:.06em;margin:.75rem 0}p{color:var(--muted);max-width:58ch}label,.note{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+    input[type=file],input[type=text],input[type=number],input[type=datetime-local]{display:block;width:100%;margin:8px 0 18px;padding:12px;border:1px solid #62524a;background:#0b0b0d;color:var(--ink);font:inherit}input[type=file]{border-style:dashed}button{border:1px solid var(--red);background:var(--red);color:white;padding:12px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+    #status{min-height:1.6em;margin:18px 0 8px;color:var(--ink)}.fine{font-size:.74rem;border-top:1px solid var(--line);margin-top:26px;padding-top:18px}a{color:var(--ink)}.error{color:#ff8c82!important}.ok{color:#a7d7ab!important}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="sigil">Restricted · Archive intake</div>
+    <h1>Seal a manuscript</h1>
+    <p>Choose a PDF, set its volume number and premiere time, and upload it to private storage. It will appear in the public reader when its premiere time arrives.</p>
+    <form id="upload-form">
+      <label for="title">Reader title</label>
+      <input id="title" name="title" type="text" maxlength="160" required>
+      <label for="volume-number">Volume number</label>
+      <input id="volume-number" name="volumeNumber" type="number" min="1" max="9999" step="1" required>
+      <label for="premiere-at">Premiere date and time (your local timezone)</label>
+      <input id="premiere-at" name="premiereAt" type="datetime-local" required>
+      <label for="pdf">PDF manuscript</label>
+      <input id="pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+      <button id="submit" type="submit">Upload to private storage</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section aria-labelledby="scheduled-heading">
+      <h2 id="scheduled-heading" style="font:700 1rem Georgia,serif;margin-top:32px">Scheduled volumes</h2>
+      <div id="release-list" class="fine">Sign in to view scheduled uploads.</div>
+    </section>
+    <p class="fine">Only signed-in owner/admin accounts can upload. Private files are not exposed through public URLs. Connect a private Vercel Blob store and enable its upload callback key before using this page.</p>
+    <p class="fine"><a href="/">Return to the archive entrance</a></p>
+  </main>
+  <script type="module">
+    import { uploadPresigned } from "https://esm.sh/@vercel/blob@2.8.0/client";
+
+    const form = document.querySelector("#upload-form");
+    const fileInput = document.querySelector("#pdf");
+    const button = document.querySelector("#submit");
+    const status = document.querySelector("#status");
+    const releaseList = document.querySelector("#release-list");
+
+    async function getCsrfToken() {
+      const response = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success || !result.data?.user) throw new Error("Sign in with an owner/admin account first.");
+      const role = result.data.user.role;
+      if (role !== "owner" && role !== "admin") throw new Error("This archive is restricted to owner/admin accounts.");
+      const token = result.data.csrfToken || localStorage.getItem("threadborn_csrf_token");
+      if (!token) throw new Error("Your session needs refreshing. Sign in again, then retry.");
+      localStorage.setItem("threadborn_csrf_token", token);
+      return token;
+    }
+
+    async function loadReleases() {
+      const response = await fetch("/api/upload/pdf", { credentials: "include", cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.error || "Could not load scheduled releases.");
+      const releases = result.data.releases || [];
+      if (!releases.length) {
+        releaseList.textContent = "No volumes are scheduled yet.";
+        return;
+      }
+      releaseList.replaceChildren(...releases.map((item) => {
+        const row = document.createElement("p");
+        const when = new Date(item.premiere_at).toLocaleString();
+        const state = item.uploaded_at ? "ready" : "upload pending";
+        row.textContent = `Vol. ${item.volume_number} · ${item.title} — ${when} · ${state}`;
+        return row;
+      }));
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      status.className = "";
+      button.disabled = true;
+      try {
+        if (!file.name.toLowerCase().endsWith(".pdf") || file.type !== "application/pdf") throw new Error("Select a valid PDF file.");
+        if (file.size > 100 * 1024 * 1024) throw new Error("PDFs must be 100 MB or smaller.");
+        const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+        if (new TextDecoder().decode(signature) !== "%PDF-") throw new Error("The selected file does not have a PDF signature.");
+        const csrfToken = await getCsrfToken();
+        const title = document.querySelector("#title").value.trim();
+        const volumeNumber = Number(document.querySelector("#volume-number").value);
+        const premiereAt = document.querySelector("#premiere-at").value;
+        if (!title || !Number.isInteger(volumeNumber) || volumeNumber < 1 || !premiereAt) throw new Error("Enter a title, volume number, and premiere time.");
+        status.textContent = "Uploading directly to private storage…";
+        const uploadPath = `threadborn-archive/${crypto.randomUUID()}.pdf`;
+        await uploadPresigned(uploadPath, file, {
+          access: "private",
+          contentType: "application/pdf",
+          handleUploadUrl: "/api/upload/pdf",
+          clientPayload: JSON.stringify({ csrfToken, title, volumeNumber, premiereAt: new Date(premiereAt).toISOString() }),
+        });
+        status.className = "ok";
+        status.textContent = `${file.name} is stored. It will appear in the reader at its premiere time.`;
+        form.reset();
+        await loadReleases();
+      } catch (error) {
+        status.className = "error";
+        status.textContent = error?.message || "Upload failed. Check that a private Blob store is connected to this Vercel project.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    loadReleases().catch((error) => {
+      releaseList.textContent = error?.message || "Sign in with an owner/admin account to view scheduled releases.";
+    });
+  </script>
+</body>
+</html>

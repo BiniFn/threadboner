@@ -15,6 +15,12 @@ threadborn-remotion-trailer/.DS_Store
 /build/
 /dist/
 /*.spec
+Threadborn.apk
+android-app/app/src/main/assets/site/Threadborn.apk
+generated_pages.js
+en_ch7.json
+jp_ch7.json
+/.metadata_never_index
 node_modules/
 .next/
 out/

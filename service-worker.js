@@ -1,7 +1,9 @@
-const CACHE_NAME = "threadboner-cache-v6";
+const CACHE_NAME = "threadboner-cache-v7";
 const CORE_ASSETS = [
   "./",
   "./index.html",
+  "./reader.html",
+  "./pdf-upload.html",
   "./content-en.js",
   "./content-ja.js",
   "./manifest.json",
@@ -27,6 +29,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.startsWith("/api/") || requestUrl.hostname.endsWith(".blob.vercel-storage.com")) return;
 
   // Network-first strategy: Always fetch fresh deploy, fallback to cache if offline
   event.respondWith(

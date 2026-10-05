@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 const { put, del } = require("@vercel/blob");
+const { issueSignedToken, presignUrl } = require("@vercel/blob");
+const { handleUploadPresigned } = require("@vercel/blob/client");
 const pool = require("../lib/api/db");
 const { allowCors, success, fail } = require("../lib/api/http");
 const { parseJsonBody, getClientIp } = require("../lib/api/request");
@@ -2034,6 +2036,41 @@ async function handleReaderTts(req, res) {
     }
 
     const voice = getFreeTtsVoice(body.language);
+    if (process.env.TTS_SERVICE_URL) {
+      const headers = { "Content-Type": "application/json", Accept: "audio/mpeg, audio/wav, audio/ogg" };
+      if (process.env.TTS_SERVICE_TOKEN) {
+        headers.Authorization = `Bearer ${process.env.TTS_SERVICE_TOKEN}`;
+      }
+      const localTtsResponse = await fetch(process.env.TTS_SERVICE_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text, language: body.language || "en", voice }),
+        signal: AbortSignal.timeout(55_000),
+      });
+      if (!localTtsResponse.ok) {
+        fail(res, 502, "Configured narration service failed");
+        return;
+      }
+      const contentType = String(localTtsResponse.headers.get("content-type") || "audio/mpeg")
+        .split(";")[0]
+        .trim();
+      if (!/^audio\/(mpeg|wav|ogg|webm|mp4)$/.test(contentType)) {
+        fail(res, 502, "Narration service returned an unsupported audio type");
+        return;
+      }
+      const audio = Buffer.from(await localTtsResponse.arrayBuffer());
+      if (!audio.length || audio.length > 12 * 1024 * 1024) {
+        fail(res, 502, "Narration service returned invalid audio");
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("X-Threadborn-Voice", voice);
+      res.end(audio);
+      return;
+    }
+
     const ttsResponse = await fetch(`${FREE_TTS_BASE_URL}/tts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3821,6 +3858,167 @@ const quoteDailyHandler = (() => {
 
 exports.handleQuoteDaily = quoteDailyHandler;
 
+exports.handlePrivatePdfUpload = async (req, res) => {
+  if (allowCors(req, res)) return;
+
+  try {
+    await pool.ensureMigrations();
+    if (req.method === "GET") {
+      const session = await requireSession(req, res, fail);
+      if (!session) return;
+      if (!isAdminSession(session)) return fail(res, 403, "Only owner/admin can view the archive");
+      const { rows } = await pool.query(
+        `select id, title, volume_number, premiere_at, uploaded_at, created_at
+         from private_pdf_releases order by premiere_at desc, volume_number desc limit 100`,
+      );
+      return success(res, { releases: rows });
+    }
+    if (req.method !== "POST") return fail(res, 405, "Method not allowed");
+
+    const body = await parseJsonBody(req);
+    const uploadResponse = await handleUploadPresigned({
+      body,
+      request: req,
+      getSignedToken: async (pathname, clientPayload) => {
+        const session = await requireSession(req, res, fail);
+        if (!session) throw new Error("Unauthorized");
+        if (!isAdminSession(session)) throw new Error("Only owner/admin can upload PDFs");
+
+        let metadata;
+        try {
+          metadata = JSON.parse(String(clientPayload || ""));
+        } catch {
+          throw new Error("Upload details are invalid");
+        }
+        const csrfToken = String(metadata.csrfToken || "");
+        if (
+          csrfToken.length !== session.csrf_token.length ||
+          !crypto.timingSafeEqual(Buffer.from(csrfToken), Buffer.from(session.csrf_token))
+        ) {
+          throw new Error("Invalid CSRF token");
+        }
+
+        const title = cleanText(metadata.title, 160);
+        const volumeNumber = Number(metadata.volumeNumber);
+        const premiereAt = new Date(metadata.premiereAt);
+        const requestedPath = String(pathname || "");
+        if (!title || !Number.isInteger(volumeNumber) || volumeNumber < 1 || volumeNumber > 9999) {
+          throw new Error("A title and valid volume number are required");
+        }
+        if (Number.isNaN(premiereAt.getTime())) throw new Error("Choose a valid premiere date and time");
+        if (!/^threadborn-archive\/[a-f0-9-]{36}\.pdf$/i.test(requestedPath)) {
+          throw new Error("Only PDF files are accepted");
+        }
+
+        const validUntil = Date.now() + 10 * 60 * 1000;
+        const token = await issueSignedToken({
+          pathname: requestedPath,
+          operations: ["put"],
+          allowedContentTypes: ["application/pdf"],
+          maximumSizeInBytes: 100 * 1024 * 1024,
+          validUntil,
+        });
+        await pool.query(
+          `insert into private_pdf_releases (title, volume_number, pathname, premiere_at, created_by)
+           values ($1, $2, $3, $4, $5)`,
+          [title, volumeNumber, requestedPath, premiereAt.toISOString(), session.user_id],
+        );
+        return {
+          token,
+          urlOptions: {
+            allowedContentTypes: ["application/pdf"],
+            maximumSizeInBytes: 100 * 1024 * 1024,
+            validUntil,
+            addRandomSuffix: false,
+            allowOverwrite: false,
+          },
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        if (!blob?.pathname || !/^threadborn-archive\/[a-f0-9-]{36}\.pdf$/i.test(blob.pathname)) {
+          throw new Error("Invalid uploaded PDF path");
+        }
+        await pool.query(
+          "update private_pdf_releases set uploaded_at = now() where pathname = $1",
+          [blob.pathname],
+        );
+      },
+    });
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.end(JSON.stringify(uploadResponse));
+  } catch (error) {
+    if (!res.writableEnded) {
+      const message = error?.message || "PDF upload failed";
+      const statusCode = /unauthorized/i.test(message) ? 401 : /owner\/admin/i.test(message) ? 403 : 400;
+      fail(res, statusCode, message);
+    }
+  }
+};
+
+exports.handlePublicPdfReleases = async (req, res) => {
+  if (allowCors(req, res)) return;
+  if (req.method !== "GET") return fail(res, 405, "Method not allowed");
+  if (!process.env.DATABASE_URL) return fail(res, 503, "PDF archive is unavailable");
+  try {
+    await pool.ensureMigrations();
+    const id = String(req.query?.id || "").trim();
+    if (id) {
+      const { rows } = await pool.query(
+        `select id, title, volume_number, pathname, premiere_at
+         from private_pdf_releases
+         where id = $1 and uploaded_at is not null and premiere_at <= now()
+         limit 1`,
+        [id],
+      );
+      if (!rows.length) return fail(res, 404, "This volume has not premiered");
+      const item = rows[0];
+      const validUntil = Date.now() + 60 * 60 * 1000;
+      const token = await issueSignedToken({
+        pathname: item.pathname,
+        operations: ["get"],
+        validUntil,
+      });
+      const { presignedUrl } = await presignUrl(token, {
+        pathname: item.pathname,
+        operation: "get",
+        access: "private",
+        validUntil,
+      });
+      return success(res, {
+        volume: {
+          id: item.id,
+          title: item.title,
+          volumeNumber: item.volume_number,
+          premiereAt: item.premiere_at,
+          url: presignedUrl,
+        },
+      }, 200, { "Cache-Control": "no-store" });
+    }
+
+    const { rows } = await pool.query(
+      `select id, title, volume_number, premiere_at,
+              (premiere_at <= now()) as released
+       from private_pdf_releases
+       where uploaded_at is not null
+       order by volume_number desc, premiere_at desc`,
+    );
+    success(res, {
+      releases: rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        volumeNumber: row.volume_number,
+        premiereAt: row.premiere_at,
+        released: row.released,
+      })),
+    }, 200, { "Cache-Control": "no-store" });
+  } catch (error) {
+    fail(res, 500, "Could not load the release archive");
+  }
+};
+
 const routeHandlers = new Map([
   ["/api/auth/login", exports.handleLogin],
   ["/api/auth/logout", exports.handleLogout],
@@ -3836,6 +4034,8 @@ const routeHandlers = new Map([
   ["/api/reader/reactions", exports.handleReactions],
   ["/api/upload/avatar", exports.handleAvatar],
   ["/api/upload/banner", exports.handleAvatar],
+  ["/api/upload/pdf", exports.handlePrivatePdfUpload],
+  ["/api/reader/volumes", exports.handlePublicPdfReleases],
   ["/api/user/profile", exports.handleProfile],
   ["/api/quote", quoteRouteHandler],
   ["/api/quote/daily", quoteDailyHandler],

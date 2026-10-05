@@ -20,17 +20,6 @@ TITLE_MAP_JA = {
     "Threadborn: Volume 1: Reborn With Zero Dignity": "スレッドボーン：第1巻：尊厳ゼロでの再生",
     "Threadborn: Volume 2: The Covenant Door": "スレッドボーン：第2巻：誓約の扉",
     NEW_SLOGAN_EN: NEW_SLOGAN_JA,
-    "The Goddess Who Pushed Me Off The Bridge": "橋から僕を突き落とした女神",
-    "Rocket Tennis and a City on Fire": "ロケットテニスと燃える街",
-    "When the Warden Knocks": "監視者がノックする時",
-    "The Price of Warm Things": "温かいものの代償",
-    "The Price of Warm Things Continued": "温かいものの代償 続き",
-    "When the Seal Breathes": "封印が息をする時",
-    "The Strongest Chapter Yet": "これまでで最強の章",
-    "The Boy Who Buried Himself": "自分自身を埋めた少年",
-    "The One Who Collects Endings": "結末を集める者",
-    "Everything That Fits in One Night": "一夜に収まるすべて",
-    "The Part She Won't Admit": "彼女が認めない部分",
 }
 
 TERM_FIXES = {

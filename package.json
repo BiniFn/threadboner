@@ -2,7 +2,7 @@
   "name": "threadboner",
   "version": "1.0.0",
   "private": true,
-  "description": "Threadboner light novel reader with Obsidian Covenant theme and mobile support",
+  "description": "The archive is incomplete by design. Follow the thread; the name behind it can wait.",
   "engines": {
     "node": "24.x"
   },
@@ -12,7 +12,7 @@
     "generate-vapid": "npx web-push generate-vapid-keys"
   },
   "dependencies": {
-    "@vercel/blob": "^0.27.0",
+    "@vercel/blob": "^2.8.0",
     "pg": "^8.16.3",
     "web-push": "^3.6.7"
   }

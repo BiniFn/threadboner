@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Threadboner — 31.12.26</title>
-<meta name="description" content="Threadboner. The thread remembers every hand that ever held it. A line a day, and a second reading hidden in some of them."/>
+<meta name="description" content="The archive is incomplete by design. Follow the thread. The name behind it can wait."/>
 <meta name="theme-color" content="#08080a"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2308080a'/%3E%3Cpath d='M22 56c0-13 14-14 14-24S22 16 22 16' fill='none' stroke='%23e7e2d9' stroke-width='12' stroke-linecap='round'/%3E%3Cpath d='M22 11c-2-3-4-4-6-4' fill='none' stroke='%23d92d2d' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E"/>
 
@@ -295,15 +295,11 @@ a.track[href]:hover{text-decoration-color:var(--accent)}
 <body>
 <a class="skip" href="#quote">Skip to the quote</a>
 <div class="plate" aria-hidden="true"></div>
-<!-- Original score, served from this origin. That matters: a cross-origin
-     YouTube embed is judged by youtube.com's autoplay policy, which this page
-     cannot influence. Served from here the browser judges it by this site's own
-     engagement, so audible autoplay succeeds for returning visitors. -->
-<audio id="bgm" src="./assets/audio/theme.mp3" loop preload="auto" playsinline>
-<!-- YouTube is created only if someone skips to an external track. Hidden by
+<audio id="bgm" loop preload="none" playsinline></audio>
+<!-- YouTube is created only when someone starts the soundtrack. Hidden by
      opacity/position rather than display:none, because the IFrame API needs a
      laid-out box to render into. -->
-<div id="yt-host" aria-hidden="true"></div></audio>
+<div id="yt-host" aria-hidden="true"></div>
 
 <main class="wrap">
   <button class="knot" id="knot" aria-label="The mark. A thread, and the piece that came off it.">
@@ -372,7 +368,10 @@ a.track[href]:hover{text-decoration-color:var(--accent)}
   </div>
 
   <footer>
+    <span id="author-bio">Author record: sealed.</span><br/>
     Threadboner &copy; 2026 BiniFn<br/>
+    <a href="/reader.html" style="color:var(--dim)">reader</a> ·
+    <a href="/pdf-upload.html" style="color:var(--dim)">admin archive</a> ·
     <a href="/api/quote" style="color:var(--dim)">quote api</a> ·
     <a href="/api/quote?format=feed" style="color:var(--dim)">rss</a>
   </footer>
@@ -403,7 +402,7 @@ a.track[href]:hover{text-decoration-color:var(--accent)}
     <button class="x" id="scrimX" aria-label="Close">
       <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
     <h2 id="hT">Keys &amp; the hunt</h2>
-    <p class="sub">Nothing here is a secret until you decode it</p>
+    <p class="sub">The archive is sealed until its keeper says otherwise</p>
     <table class="keys">
       <tr><td><kbd>?</kbd> or <kbd>h</kbd></td><td>this panel</td></tr>
       <tr><td><kbd>n</kbd></td><td>next line of the day</td></tr>
@@ -414,25 +413,17 @@ a.track[href]:hover{text-decoration-color:var(--accent)}
       <tr><td><kbd>Esc</kbd></td><td>close anything</td></tr>
       <tr><td><kbd>↑↑↓↓←→←→BA</kbd></td><td>you already know</td></tr>
     </table>
-    <p><b>Stage one.</b> Each of the five marks drops a fragment into the log. The log
-       gives you ciphertext and <em>not</em> the cipher — work out which encoding each
-       one uses. Six are in play.</p>
-    <p><b>Stage two.</b> Four more nodes exist only outside the page, in the markup and
-       the comments. Open <b>view-source</b>. Your progress is saved on this device.</p>
-    <p><b>Also.</b> Some lines of the day carry a concealed second meaning. The panel
-       under one gives you the ciphertext and never names the cipher. Five are in play.
-       Lines that arrive from elsewhere do not — they had no second reading written
-       for them.</p>
-    <p><b>Stage three.</b> The last one is planted three separate ways. Find two and check
-       they agree.</p>
+    <p><b>Five marks.</b> Touch each one to recover part of the record. Their order matters.</p>
+    <p><b>One record.</b> The author's identity stays sealed until all five marks are found.</p>
+    <p><b>Keep looking.</b> Some clues wait in the page margins.</p>
   </div>
 </div>
 
 <div class="reward" id="reward" role="dialog" aria-modal="true" aria-label="Recovered">
   <div class="reward-in">
     <p class="k">five of five</p>
-    <p class="m">THE LOOP IS THE POINT</p>
-    <p class="n">You pulled the thread. Stage two is not on this page.<br/>Open the source.</p>
+  <p class="m">THE RECORD IS OPEN</p>
+    <p class="n">Five marks recovered. The sealed account has been revealed.</p>
     <p class="barline" aria-hidden="true"><i></i></p>
   </div>
   <button class="x" id="rewardX" aria-label="Close">
@@ -616,6 +607,7 @@ var store={
 var body=document.getElementById('logbody'),
     cnt=document.getElementById('cnt'),
     knot=document.getElementById('knot'),
+    authorBio=document.getElementById('author-bio'),
     reward=document.getElementById('reward'),
     rewardX=document.getElementById('rewardX'),
     whisper=document.getElementById('whisper');
@@ -639,6 +631,9 @@ function draw(){
     body.innerHTML=h;
   }
   cnt.textContent=n+' / 5';
+  if(authorBio)authorBio.textContent=n===FRAGS.length
+    ? 'I leave one account in the archive, and another in the margins. — BiniFn'
+    : 'Author record: sealed.';
   for(var j=0;j<FRAGS.length;j++){
     var el=document.getElementById('m'+(j+1));
     if(el)el.classList.toggle('got',!!got[j]);
@@ -707,9 +702,8 @@ draw();
    first interaction anywhere. */
 var SK='tb-sound';
 
-/* Track 0 is local. The rest carry their YouTube id and a display name. */
+/* The remaining tracks are external and start only after user interaction. */
 var TRACKS=[
-  {title:'AOT Ashes',local:'./assets/audio/theme.mp3'},
   {title:'Last Game By Zwei',yt:'FeG4JH9f180'},
   {title:'Hacking to the Gate',yt:'dy7gr0vaNho'},
   {title:'Fatima',yt:'1xJbdY9B3A8'}
@@ -728,6 +722,7 @@ function pref(){try{return localStorage.getItem(SK)}catch(e){return null}}
 function setPref(v){try{localStorage.setItem(SK,v)}catch(e){}}
 
 function track(){return TRACKS[idx]}
+function isLocalTrack(){return !!track().local}
 function ytUrl(t){return t.yt?'https://www.youtube.com/watch?v='+t.yt:''}
 
 /* ---------- state ---------- */
@@ -824,7 +819,7 @@ function loadYouTube(cb){
 function settle(){
   var tries=[350,900,1800,3200,5000,7500,11000];
   (function next(i){
-    if(idx===0||!yt)return;
+    if(isLocalTrack()||!yt)return;
     var audible=applyVolume();
     var st=-1;
     try{st=yt.getPlayerState()}catch(e){}
@@ -846,7 +841,7 @@ function settle(){
 
 function playYT(){
   loadYouTube(function(){
-    if(!yt||idx===0)return;
+    if(!yt||isLocalTrack())return;
     try{
       /* If this exact video is already in the player, resume it. Reloading by
          id restarts from zero and does not always fire a PLAYING event, which
@@ -889,7 +884,7 @@ function fellBack(msg){
 function goTo(n,autoplay){
   n=((n%TRACKS.length)+TRACKS.length)%TRACKS.length;
   var wasPlaying=playing||autoplay;
-  if(idx===0)stopLocal();else stopYT();
+  if(isLocalTrack())stopLocal();else stopYT();
   if(n!==idx)loadedId=null;   /* switching tracks: the next play must load */
   idx=n;
   /* label first, so the UI is right even while the source spins up */
@@ -899,7 +894,7 @@ function goTo(n,autoplay){
   nameEl.title='';
   paint();
   if(wasPlaying||autoplay){
-    if(idx===0)playLocal();else playYT();
+    if(isLocalTrack())playLocal();else playYT();
   }
 }
 /* If the embed is holding itself muted, the only thing that releases it is a
@@ -922,10 +917,10 @@ function armUnmute(){
 
 function start(){
   if(pref()==='paused')setPref('on');
-  if(idx===0)playLocal();else playYT();
+  if(isLocalTrack())playLocal();else playYT();
 }
 function stop(){
-  if(idx===0)stopLocal();else stopYT();
+  if(isLocalTrack())stopLocal();else stopYT();
   playing=false;blocked=false;setPref('off');paint();
 }
 /* The play/pause button: pause on an external track rather than unloading it,
@@ -935,7 +930,7 @@ function stop(){
    ambushed by sound on their next visit, but "paused" must stay resumable —
    collapsing it into "off" was conflating two different intentions. */
 function pause(){
-  if(idx===0){stopLocal();playing=false;blocked=false;setPref('paused');paint();return}
+  if(isLocalTrack()){stopLocal();playing=false;blocked=false;setPref('paused');paint();return}
   if(yt){try{yt.pauseVideo()}catch(e){}}
   playing=false;blocked=false;setPref('paused');paint();
 }
@@ -943,7 +938,7 @@ function pause(){
 audio.addEventListener('playing',started);
 audio.addEventListener('pause',function(){playing=false;blocked=false;paint()});
 audio.addEventListener('error',function(){
-  if(idx===0){nameEl.textContent='score unavailable';blocked=false;playing=false;paint()}
+  if(isLocalTrack()){nameEl.textContent='score unavailable';blocked=false;playing=false;paint()}
 });
 
 /* quiet enough to sit under text without fighting it */
@@ -983,9 +978,9 @@ nextBtn.addEventListener('click',function(){
 var W=['...the loom is counting',
        'five marks. three taps on the knot.',
        'the counter is a door, not a score',
-       'view-source. then read the comments.',
-       'nine nodes. the page only shows five.',
-       'every line carries a second reading'];
+       'the archive is incomplete by design',
+       'some names wait behind the record',
+       'follow the thread'];
 var wi=0;
 setInterval(function(){
   wi=(wi+1)%W.length;

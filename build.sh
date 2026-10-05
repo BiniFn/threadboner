@@ -6,7 +6,11 @@
 set -e
 
 VIDEO="media/videos/threadborn_trailer/1080p60/Trailer.mp4"
-AUDIO="aot_ashes.mp3"
+if [ -n "${TRAILER_AUDIO:-}" ]; then
+  AUDIO="$TRAILER_AUDIO"
+else
+  AUDIO=""
+fi
 OUTPUT="threadborn_final.mp4"
 YT_URL="https://www.youtube.com/watch?v=uc2aaziVV0w"
 
@@ -22,10 +26,9 @@ echo "🎬 Rendering trailer..."
 echo "✅ Render done → $VIDEO"
 
 echo ""
-if [ ! -f "$AUDIO" ]; then
-  echo "🎵 Downloading audio..."
-  yt-dlp -x --audio-format mp3 --audio-quality 0 -o "$AUDIO" "$YT_URL"
-  echo "✅ Audio → $AUDIO"
+if [ -z "$AUDIO" ] || [ ! -f "$AUDIO" ]; then
+  echo "❌ Set TRAILER_AUDIO to an audio file you have permission to use."
+  exit 1
 fi
 
 DURATION=$(ffprobe -v error -show_entries format=duration \

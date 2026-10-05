@@ -68,19 +68,14 @@ def get_pages_block(js_text, start_hint=0):
     return extract_template_literals(inner)
 
 # ── locate JS sections ─────────────────────────────────────────────────────
-js_start = src.index('const legacyEpisodes = [')
-js_end   = src.index('const chapters = [')
-legacy_js = src[js_start:js_end]
+legacy_js = ""
+chapters_js = ""
 
-ch_start = src.index('const chapters = [')
-ch_end   = src.index('const characters = [')
-chapters_js = src[ch_start:ch_end]
-
-# ── Volume 1 — legacy episodes (chapters 1-4) split by CHAPTER comment ───
+# ── Volume 1 — legacy episode extraction from content files ──────────────
 chapter_blocks_v1 = re.split(r'// ---- CHAPTER \d+ ----', legacy_js)
 chapter_blocks_v1 = [b for b in chapter_blocks_v1 if 'pages:' in b]
 
-# ── Chapter 5 is pushed separately ────────────────────────────────────────
+# ── Optional legacy extraction ────────────────────────────────────────────
 ch5_match = re.search(r'legacyEpisodes\.push\(\{([\s\S]*?)\}\);', legacy_js, re.DOTALL)
 
 legacy_pages = []
@@ -103,15 +98,15 @@ for m in re.finditer(r'volume:\s*"Volume 2"', chapters_js):
 
 # ── meta ──────────────────────────────────────────────────────────────────
 vol1_meta = [
-    ("Chapter 1", "The Goddess Who Pushed Me Off The Bridge"),
-    ("Chapter 2", "Rocket Tennis and a City on Fire"),
-    ("Chapter 3", "When the Warden Knocks"),
-    ("Chapter 4", "The Price of Warm Things"),
-    ("Chapter 5", "What the Forest Keeps"),
+    ("Chapter 1", "The first recovered record"),
+    ("Chapter 2", "The second recovered record"),
+    ("Chapter 3", "The third recovered record"),
+    ("Chapter 4", "The fourth recovered record"),
+    ("Chapter 5", "The fifth recovered record"),
 ]
 vol2_meta = [
-    ("Chapter 1", "When the Seal Breathes"),
-    ("Chapter 2", "The Strongest Chapter Yet"),
+    ("Chapter 1", "A sealed record"),
+    ("Chapter 2", "Another sealed record"),
 ]
 
 # ── assemble MD ───────────────────────────────────────────────────────────
